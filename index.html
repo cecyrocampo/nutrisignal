@@ -278,13 +278,35 @@ function renderDash(){
   h+='<div class="card"><div class="ch">Nutrientes de riesgo (NPM A-pts)</div><div class="cb">';
   Object.entries(nuts).sort(function(a,b){return b[1]-a[1];}).forEach(function(kv){var pv=Math.min(100,kv[1]/(n*10)*100);h+='<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px"><span>'+kv[0]+'</span><span style="font-weight:700;color:'+col(pv)+'">'+pv.toFixed(0)+'%</span></div>'+bar(pv,col(pv))+'</div>';});
   h+='</div></div></div>';
-  h+='<div class="g2" style="margin-top:10px">';
-  h+='<div class="card"><div class="ch">Categorías</div><table><thead><tr><th>Categoría</th><th>SKUs</th><th>NPM</th><th>NS</th></tr></thead><tbody>';
-  Object.entries(cats).sort(function(a,b){return b[1].t-a[1].t;}).forEach(function(kv){
-    var nf=prods.filter(function(p,i){return p.category===kv[0]&&['A','B'].includes(sc[i].ns.grade);}).length;
-    h+='<tr><td style="font-weight:600">'+esc(kv[0])+'</td><td>'+kv[1].t+'</td><td>'+bdg(kv[1].f===0?'Pass':'Fail','mkt')+'</td><td>'+bdg(nf===kv[1].t?'Pass':'Fail','mkt')+'</td></tr>';
+  // Category-level revenue at risk
+  var catRisk={};
+  prods.forEach(function(p,i){
+    var cat=p.category||'Sin categoría';
+    if(!catRisk[cat])catRisk[cat]={t:0,f:0,sales:0,riskSales:0,nsPass:0};
+    catRisk[cat].t++;
+    var s=sc[i];
+    var lh=s.npm.lh||false;
+    var sales=+p.sales||0;
+    catRisk[cat].sales+=sales;
+    if(lh){catRisk[cat].f++;catRisk[cat].riskSales+=sales;}
+    if(['A','B'].includes(s.ns.grade))catRisk[cat].nsPass++;
   });
-  h+='</tbody></table></div>';
+  var hasSales=prods.some(function(p){return+p.sales>0;});
+  h+='<div class="g2" style="margin-top:10px">';
+  h+='<div class="card"><div class="ch">Categorías — Revenue en riesgo</div><div class="over"><table><thead><tr><th>Categoría</th><th>SKUs</th><th>NPM</th><th>NS</th>'+(hasSales?'<th>Revenue</th><th style="color:#8b1a1a">En riesgo</th><th>% riesgo</th>':'')+'</tr></thead><tbody>';
+  Object.entries(catRisk).sort(function(a,b){return (b[1].riskSales||b[1].f)-(a[1].riskSales||a[1].f);}).forEach(function(kv){
+    var d=kv[1],pRisk=d.sales>0?(d.riskSales/d.sales*100):0;
+    h+='<tr><td style="font-weight:600">'+esc(kv[0])+'</td><td>'+d.t+'</td>';
+    h+='<td>'+bdg(d.f===0?'Pass':'Fail','mkt')+'</td>';
+    h+='<td>'+bdg(d.nsPass===d.t?'Pass':'Fail','mkt')+'</td>';
+    if(hasSales){
+      h+='<td style="font-family:monospace;text-align:right">'+(d.sales>0?'€'+d.sales.toLocaleString():'—')+'</td>';
+      h+='<td style="font-family:monospace;text-align:right;color:#8b1a1a;font-weight:600">'+(d.riskSales>0?'€'+d.riskSales.toLocaleString():'—')+'</td>';
+      h+='<td><div style="display:flex;align-items:center;gap:5px"><div style="width:50px;height:5px;background:#eee;border-radius:3px;overflow:hidden"><div style="height:100%;background:'+(pRisk>50?'#8b1a1a':pRisk>25?'#b06010':'#1a5c35')+';width:'+Math.min(100,pRisk)+'%"></div></div><span style="font-size:10px;font-weight:700;color:'+(pRisk>50?'#8b1a1a':pRisk>25?'#b06010':'#1a5c35')+'">'+pRisk.toFixed(0)+'%</span></div></td>';
+    }
+    h+='</tr>';
+  });
+  h+='</tbody></table></div></div>';
   if(tS>0){
     // Weighted compliance rates
     var wnP=prods.filter(function(p,i){return!sc[i].npm.err&&!sc[i].npm.lh;}).reduce(function(a,p){return a+(+p.sales||0);},0);
@@ -408,16 +430,30 @@ function renderProds(){
   }
 
   h+='<div class="card"><div class="over"><table><thead><tr>';
-  [['name','Producto'],['category','Cat'],['energy','kJ'],['sugars','Azúcar'],['satFat','G.Sat'],['salt','Sal'],['protein','Prot']].forEach(function(t){
+  [['name','Producto'],['category','Cat'],['energy','kJ'],['sugars','Azúcar'],['satFat','G.Sat'],['salt','Sal'],['protein','Prot'],['sales','Ventas']].forEach(function(t){
     h+='<th data-sort="'+t[0]+'">'+t[1]+(S.sortK===t[0]?(S.sortD>0?' ▲':' ▼'):'')+'</th>';
   });
-  h+='<th>NPM</th><th>NS</th><th>HSR</th><th>WHO</th><th></th></tr></thead><tbody>';
+  h+='<th>NPM</th><th>NS</th><th>HSR</th><th>WHO</th><th style="color:#8b1a1a">Riesgo</th><th></th></tr></thead><tbody>';
   fl.forEach(function(p,i){
     var s=fsc[i];
-    h+='<tr><td style="font-weight:600;max-width:130px;overflow:hidden;text-overflow:ellipsis">'+esc(p.name)+'</td>';
+    // Revenue at risk per product
+    var failMkts=Object.entries(s.markets).filter(function(kv){return kv[1]==='F';}).map(function(kv){return kv[0];});
+    var isAtRisk=failMkts.length>0;
+    var pSales=+p.sales||0;
+    h+='<tr><td style="font-weight:600;max-width:120px;overflow:hidden;text-overflow:ellipsis">'+esc(p.name)+'</td>';
     h+='<td style="font-size:11px">'+esc(p.category||'—')+'</td>';
-    ['energy','sugars','satFat','salt','protein'].forEach(function(k){h+='<td style="font-family:monospace;text-align:right">'+(p[k]!=null?p[k]:'—')+'</td>';});
+    ['energy','sugars','satFat','salt','protein'].forEach(function(k){h+='<td style="font-family:monospace;text-align:right;font-size:11px">'+(p[k]!=null?p[k]:'—')+'</td>';});
+    h+='<td style="font-family:monospace;text-align:right;font-size:11px">'+(pSales>0?'€'+pSales.toLocaleString():'—')+'</td>';
     h+='<td>'+bdg(s.npm.result,'npm')+'</td><td>'+bdg(s.ns.grade,'ns')+'</td><td>'+bdg(s.hsr.result,'hsr')+'</td><td>'+bdg(s.who.result,'who')+'</td>';
+    // Risk cell
+    if(isAtRisk){
+      h+='<td><div style="display:flex;flex-direction:column;gap:2px">';
+      h+='<span style="font-size:9px;font-weight:700;color:#8b1a1a;background:#fce8e8;padding:1px 5px;border-radius:3px">'+(pSales>0?'€'+pSales.toLocaleString():failMkts.length+' mercados')+'</span>';
+      h+='<span style="font-size:9px;color:#637060">'+failMkts.slice(0,3).join(', ')+(failMkts.length>3?'...':'')+'</span>';
+      h+='</div></td>';
+    }else{
+      h+='<td><span style="font-size:9px;color:#1a5c35;background:#e8f5ec;padding:1px 5px;border-radius:3px;font-weight:700">✓ OK</span></td>';
+    }
     h+='<td><div style="display:flex;gap:3px"><button class="sbtn sm btn-edit-p" data-id="'+p.id+'">✎</button><button class="sbtn red sm btn-del-p" data-id="'+p.id+'">✕</button></div></td></tr>';
   });
   h+='</tbody></table></div>';
@@ -685,52 +721,201 @@ function mapRows(rows){
 }
 
 // ── RENDER AI INSIGHTS ────────────────────────────────────────────
+function generateLocalInsights(){
+  if(!prods.length)return[];
+  var sc=prods.map(calcAll);
+  var n=prods.length;
+  var tS=prods.reduce(function(a,p){return a+(+p.sales||0);},0);
+  var rS=prods.filter(function(_,i){return sc[i].npm.lh;}).reduce(function(a,p){return a+(+p.sales||0);},0);
+  var hasSales=tS>0;
+  var npmFail=sc.filter(function(s){return s.npm.lh;}).length;
+  var nsFail=sc.filter(function(s){return!['A','B'].includes(s.ns.grade);}).length;
+  var whoFail=sc.filter(function(s){return!s.who.ok;}).length;
+  
+  // Nutrient drivers
+  var nuts={Azúcares:0,Energía:0,'Grasa saturada':0,Sodio:0};
+  sc.forEach(function(s){if(!s.npm.err){nuts.Azúcares+=s.npm.a2||0;nuts.Energía+=s.npm.a1||0;nuts['Grasa saturada']+=s.npm.a3||0;nuts.Sodio+=s.npm.a4||0;}});
+  var topNut=Object.entries(nuts).sort(function(a,b){return b[1]-a[1];})[0];
+  
+  // Worst category
+  var cats={};prods.forEach(function(p,i){var cat=p.category||'Otro';if(!cats[cat])cats[cat]={t:0,f:0,rS:0,tS:0};cats[cat].t++;if(sc[i].npm.lh){cats[cat].f++;cats[cat].rS+=(+p.sales||0);}cats[cat].tS+=(+p.sales||0);});
+  var worstCat=Object.entries(cats).sort(function(a,b){return(b[1].f/b[1].t)-(a[1].f/a[1].t);})[0];
+  var highRevCat=hasSales?Object.entries(cats).sort(function(a,b){return b[1].rS-a[1].rS;})[0]:null;
+  
+  // Borderline products (close to passing)
+  var borderline=prods.filter(function(p,i){var s=sc[i];if(s.npm.err)return false;var thr=p.npmType==='Drink'?1:4;return s.npm.lh&&s.npm.sc<=thr+2;});
+  
+  // Protein blocked
+  var protBlocked=sc.filter(function(s){return s.npm.pb;}).length;
+  
+  // Best reformulation opportunity
+  var sugarHeavy=prods.filter(function(p,i){return sc[i].npm.lh&&sc[i].npm.a2>=7;});
+  
+  var insights=[];
+  
+  // Risk overview
+  insights.push({type:'risk',title:'Riesgo regulatorio del portafolio',
+    body:''+npmFail+' de '+n+' productos ('+Math.round(npmFail/n*100)+'%) clasifican como Less Healthy en UK NPM 2018.'+(hasSales&&rS>0?' Esto representa €'+rS.toLocaleString()+' ('+Math.round(rS/tS*100)+'% del revenue total) bajo riesgo regulatorio.':'')
+  });
+  
+  // Top nutrient driver
+  if(topNut&&topNut[1]>0){
+    insights.push({type:'risk',title:topNut[0]+' es tu principal riesgo nutricional',
+      body:topNut[0]+' acumula '+Math.round(topNut[1]/(n*10)*100)+'% de los A-points posibles en el portafolio. Reducir '+topNut[0].toLowerCase()+' tiene el mayor impacto potencial sobre los scores NPM.'
+    });
+  }
+  
+  // Worst category
+  if(worstCat&&worstCat[1].t>0){
+    var wr=Math.round(worstCat[1].f/worstCat[1].t*100);
+    insights.push({type:'risk',title:'"'+worstCat[0]+'" — categoría con mayor tasa de fallo',
+      body:wr+'% de los productos en '+worstCat[0]+' son Less Healthy.'+(highRevCat&&highRevCat[0]===worstCat[0]&&hasSales?' Esta categoría también concentra el mayor revenue en riesgo (€'+worstCat[1].rS.toLocaleString()+').':'')
+    });
+  }
+  
+  // Borderline quick wins
+  if(borderline.length>0){
+    insights.push({type:'win',title:borderline.length+' producto'+(borderline.length>1?'s':'')+' borderline — mejora rápida posible',
+      body:borderline.slice(0,3).map(function(p){return p.name;}).join(', ')+(borderline.length>3?' y '+(borderline.length-3)+' más':'')+' están a solo 1-2 puntos de pasar NPM. Una reformulación mínima podría cambiar su clasificación.'
+    });
+  }
+  
+  // Protein blocked
+  if(protBlocked>0){
+    insights.push({type:'win',title:'Regla de proteína bloqueada en '+protBlocked+' producto'+(protBlocked>1?'s':''),
+      body:'En '+protBlocked+' producto'+(protBlocked>1?'s':'')+', los C-points de proteína están bloqueados porque A≥11 y FVNL<5. Aumentar FVNL a ≥80% desbloquearía puntos adicionales sin cambiar la receta principal.'
+    });
+  }
+  
+  // Sugar reformulation
+  if(sugarHeavy.length>0){
+    insights.push({type:'win',title:'Reducción de azúcar — mayor palanca de mejora',
+      body:sugarHeavy.length+' producto'+(sugarHeavy.length>1?'s':'')+' ('+sugarHeavy.slice(0,2).map(function(p){return p.name;}).join(', ')+(sugarHeavy.length>2?'...':'')+') tienen azúcares ≥7/10 A-points. Una reducción del 15-20% de azúcares en estos productos impacta directamente su clasificación NPM.'
+    });
+  }
+  
+  // NS opportunity
+  var nsClose=prods.filter(function(p,i){var s=sc[i];return s.ns.grade==='C'&&s.ns.sc<=12;});
+  if(nsClose.length>0){
+    insights.push({type:'win',title:nsClose.length+' producto'+(nsClose.length>1?'s':'')+' a un paso del grado B en Nutri-Score',
+      body:nsClose.slice(0,3).map(function(p){return p.name;}).join(', ')+' tienen grado C pero con score ≤12. Añadir fibra o aumentar proteína podría moverlos a grado B, desbloqueando mercados como Francia y Bélgica.'
+    });
+  }
+  
+  // High revenue at risk specific
+  if(hasSales&&rS>0){
+    var topRiskProd=prods.filter(function(p,i){return sc[i].npm.lh&&+p.sales>0;}).sort(function(a,b){return+b.sales-+a.sales;})[0];
+    if(topRiskProd){
+      insights.push({type:'risk',title:'"'+topRiskProd.name+'" — mayor exposición comercial',
+        body:'Con €'+Math.round(+topRiskProd.sales).toLocaleString()+' en ventas, "'+topRiskProd.name+'" es el producto Less Healthy de mayor valor económico. Su reformulación debería ser prioridad estratégica.'
+      });
+    }
+  }
+  
+  // WHO compliance
+  if(whoFail>0){
+    insights.push({type:'risk',title:'Cumplimiento WHO — '+whoFail+' producto'+(whoFail>1?'s no cumplen':' no cumple'),
+      body:Math.round(whoFail/n*100)+'% del portafolio supera al menos un umbral WHO (grasa saturada ≤2.22g, azúcares ≤5g, sal ≤0.5g por 100g). Esto afecta posicionamiento en mercados con políticas de salud pública estrictas.'
+    });
+  }
+  
+  // Strategic: cross-market misalignment
+  var frPass=sc.filter(function(s){return s.markets.France==='P';}).length;
+  var ukPass=sc.filter(function(s){return s.markets.UK==='P';}).length;
+  if(Math.abs(frPass-ukPass)>2){
+    insights.push({type:'strategic',title:'Desalineación entre mercados UK y Francia',
+      body:''+ukPass+' productos cumplen en UK (NPM) pero '+frPass+' en Francia (Nutri-Score). Esto indica que tienes productos que están bien posicionados en un mercado pero en riesgo en otro — revisar estrategia de reformulación por mercado prioritario.'
+    });
+  }
+  
+  return insights;
+}
+
 function renderAI(){
   var el=document.getElementById('ai');
+  if(!el)return;
   var n=prods.length;
   var apikey=S.apikey||'';
-  var h='<div class="card" style="margin-bottom:10px"><div class="ch">AI Insights — Análisis de portafolio</div><div class="cb">';
-  h+='<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px">';
-  h+='<div class="fl" style="flex:1;min-width:200px"><label>Anthropic API Key (console.anthropic.com)</label>';
+  var localInsights=generateLocalInsights();
+  
+  var h='';
+  
+  // API Key bar
+  h+='<div class="card" style="margin-bottom:10px"><div class="ch">Chat con IA — Análisis avanzado de portafolio</div><div class="cb">';
+  h+='<div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:8px">';
+  h+='<div class="fl" style="flex:1;min-width:200px"><label>Anthropic API Key — <a href="https://console.anthropic.com" target="_blank" style="color:#2d6a47">console.anthropic.com</a> → API Keys</label>';
   h+='<input type="password" id="ai-apikey" value="'+esc(apikey)+'" placeholder="sk-ant-api03-..." style="font-size:12px"></div>';
-  h+='<button class="sbtn pri" id="btn-set-apikey" style="margin-top:14px">'+(S.akset?'✓ Conectado':'Conectar')+'</button>';
-  if(S.akset)h+='<button class="sbtn sm" id="btn-disconnect-ai" style="margin-top:14px">Desconectar</button>';
+  h+='<button class="sbtn pri" id="btn-set-apikey" style="margin-bottom:2px">'+(S.akset?'✓ Conectado':'Conectar')+'</button>';
+  if(S.akset)h+='<button class="sbtn sm" id="btn-disconnect-ai" style="margin-bottom:2px">Desconectar</button>';
   h+='</div>';
-  if(S.akset)h+='<div style="font-size:11px;color:#1a5c35;margin-bottom:4px">✓ API conectada · Analizando '+n+' productos</div>';
-  h+='<div style="font-size:11px;color:#637060">El key solo se usa en tu navegador, nunca se almacena. Coste estimado: ~$0.003/conversación.</div>';
+  h+='<div style="font-size:11px;color:'+(S.akset?'#1a5c35':'#637060')+'">'+(S.akset?'✓ Conectada · Claude analiza tus '+n+' productos en tiempo real':'Opcional — sin key los insights locales funcionan de todas formas. Coste: ~$0.003/conversación.')+'</div>';
   h+='</div></div>';
-  // Chat area
-  h+='<div class="card" style="display:flex;flex-direction:column;height:500px">';
-  h+='<div style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px" id="ai-msgs">';
-  if(!S.aiMsgs||!S.aiMsgs.length){
-    h+='<div style="text-align:center;padding:24px 0">';
-    h+='<div style="font-size:28px;margin-bottom:10px">✦</div>';
-    h+='<div style="font-size:15px;font-weight:600;margin-bottom:6px">Pregunta sobre tu portafolio</div>';
-    h+='<div style="font-size:12px;color:#637060;max-width:360px;margin:0 auto">';
-    h+=n>0?'Tengo acceso completo a tus '+n+' productos — scores, nutrientes, cumplimiento y ventas.':'Carga productos primero para activar el análisis.';
+  
+  // Local auto-insights section
+  if(localInsights.length>0){
+    h+='<div class="card" style="margin-bottom:10px"><div class="ch">Insights automáticos — basados en tus datos actuales</div><div class="cb" style="padding:10px 14px">';
+    var typeLabel={risk:'⚠ Riesgo',win:'✓ Oportunidad',strategic:'→ Estratégico'};
+    var typeBg={risk:'#fce8e8',win:'#e8f5ec',strategic:'#f0f4ff'};
+    var typeCol={risk:'#8b1a1a',win:'#1a5c35',strategic:'#2d4480'};
+    var typeBdr={risk:'#f0c0c0',win:'#b8e0c0',strategic:'#c0cce8'};
+    localInsights.forEach(function(ins){
+      h+='<div style="padding:10px 12px;margin-bottom:8px;border-radius:8px;background:'+typeBg[ins.type]+';border-left:3px solid '+typeBdr[ins.type]+'">';
+      h+='<div style="font-size:10px;font-weight:700;color:'+typeCol[ins.type]+';text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">'+typeLabel[ins.type]+'</div>';
+      h+='<div style="font-size:13px;font-weight:600;color:#0f1a0f;margin-bottom:4px">'+esc(ins.title)+'</div>';
+      h+='<div style="font-size:12px;color:#374037;line-height:1.6">'+esc(ins.body)+'</div>';
+      h+='</div>';
+    });
+    h+='<div style="font-size:10px;color:#637060;margin-top:4px">Los insights se actualizan automáticamente cuando añades o modificas productos.</div>';
     h+='</div></div>';
+  }else if(!n){
+    h+='<div style="text-align:center;padding:32px;background:#f4f7f2;border-radius:12px;color:#637060;margin-bottom:10px"><div style="font-size:15px;font-weight:600;margin-bottom:6px">Sin datos</div><div style="font-size:12px">Carga productos para generar insights automáticos</div></div>';
+  }
+  
+  // Chat area
+  h+='<div class="card" style="display:flex;flex-direction:column">';
+  h+='<div style="padding:10px 14px;background:#f4f7f2;border-bottom:1px solid #d8e4d9;font-size:12px;font-weight:700;display:flex;justify-content:space-between;align-items:center">Chat — Pregunta lo que quieras sobre tus productos';
+  if(S.aiMsgs&&S.aiMsgs.length)h+='<button class="sbtn sm" id="btn-clear-ai">↺ Limpiar</button>';
+  h+='</div>';
+  
+  h+='<div style="height:340px;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px" id="ai-msgs">';
+  if(!S.aiMsgs||!S.aiMsgs.length){
+    h+='<div style="text-align:center;padding:20px 0">';
+    h+='<div style="font-size:13px;color:#637060;margin-bottom:14px">'+(n>0?'Pregunta en español sobre tu portafolio:':'Carga productos primero')+'</div>';
     if(n>0){
-      h+='<div style="display:flex;flex-wrap:wrap;gap:5px;justify-content:center;padding:0 8px">';
-      ['¿Cuál es mi producto con mayor riesgo regulatorio?','¿Qué nutriente está perjudicando más mi portafolio?','¿Cuánto revenue está en riesgo por NPM?','¿Qué 2 productos reformularías primero?','Compara mis bebidas en todos los modelos','¿Qué categoría tiene peor cumplimiento WHO?'].forEach(function(q){
-        h+='<button class="sbtn-q" data-q="'+esc(q)+'" style="padding:5px 12px;border-radius:99px;border:1px solid #d8e4d9;font-size:11px;font-weight:500;cursor:pointer;background:#fff;color:#374037">'+q+'</button>';
+      h+='<div style="display:flex;flex-wrap:wrap;gap:5px;justify-content:center">';
+      ['¿Cuál es el producto con mayor riesgo?','¿Qué nutriente perjudica más mi portafolio?','¿Cuánto revenue está en riesgo?','¿Qué reformularías primero?','¿Cómo estoy vs France vs UK?','¿Qué productos son borderline?'].forEach(function(q){
+        h+='<button class="sbtn-q" data-q="'+esc(q)+'" style="padding:5px 12px;border-radius:99px;border:1px solid #d8e4d9;font-size:11px;cursor:pointer;background:#fff;color:#374037">'+q+'</button>';
       });
       h+='</div>';
+      if(!S.akset)h+='<div style="margin-top:12px;font-size:11px;color:#637060">Conecta tu API key arriba para activar el chat</div>';
     }
+    h+='</div>';
   }else{
     S.aiMsgs.forEach(function(m){
-      if(m.r==='u')h+='<div style="display:flex;flex-direction:row-reverse;gap:7px;align-items:flex-start"><div style="width:26px;height:26px;border-radius:50%;background:#2d6a47;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0">U</div><div style="background:#2d6a47;color:#fff;border-radius:14px 4px 14px 14px;padding:10px 14px;font-size:13px;line-height:1.6;max-width:70%;white-space:pre-wrap">'+esc(m.t)+'</div></div>';
-      else h+='<div style="display:flex;gap:7px;align-items:flex-start"><div style="width:26px;height:26px;border-radius:50%;background:#f0f0f0;border:1px solid #d8e4d9;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0">✦</div><div style="background:'+(m.e?'#fce8e8':'#f4f7f2')+';border:1px solid #d8e4d9;border-radius:4px 14px 14px 14px;padding:10px 14px;font-size:13px;line-height:1.65;max-width:76%;white-space:pre-wrap;color:'+(m.e?'#8b1a1a':'#0f1a0f')+'">'+esc(m.t)+'</div></div>';
+      if(m.r==='u'){
+        h+='<div style="display:flex;flex-direction:row-reverse;gap:7px;align-items:flex-start">';
+        h+='<div style="width:24px;height:24px;border-radius:50%;background:#2d6a47;color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0;margin-top:2px">U</div>';
+        h+='<div style="background:#2d6a47;color:#fff;border-radius:14px 4px 14px 14px;padding:10px 14px;font-size:13px;line-height:1.6;max-width:75%;white-space:pre-wrap">'+esc(m.t)+'</div></div>';
+      }else{
+        h+='<div style="display:flex;gap:7px;align-items:flex-start">';
+        h+='<div style="width:24px;height:24px;border-radius:50%;background:#f0f0f0;border:1px solid #d8e4d9;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;margin-top:2px">✦</div>';
+        h+='<div style="background:'+(m.e?'#fce8e8':'#f4f7f2')+';border:1px solid #d8e4d9;border-radius:4px 14px 14px 14px;padding:10px 14px;font-size:13px;line-height:1.65;max-width:78%;white-space:pre-wrap;color:'+(m.e?'#8b1a1a':'#0f1a0f')+'">'+esc(m.t)+'</div></div>';
+      }
     });
-    if(S.aiLoading)h+='<div style="display:flex;gap:7px;align-items:flex-start"><div style="width:26px;height:26px;border-radius:50%;background:#f0f0f0;border:1px solid #d8e4d9;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0">✦</div><div style="background:#f4f7f2;border:1px solid #d8e4d9;border-radius:4px 14px 14px 14px;padding:12px 16px;font-size:13px;color:#637060">Analizando...</div></div>';
+    if(S.aiLoading){
+      h+='<div style="display:flex;gap:7px;align-items:flex-start">';
+      h+='<div style="width:24px;height:24px;border-radius:50%;background:#f0f0f0;border:1px solid #d8e4d9;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0">✦</div>';
+      h+='<div style="background:#f4f7f2;border:1px solid #d8e4d9;border-radius:4px 14px 14px 14px;padding:12px 16px;font-size:13px;color:#637060">Analizando tu portafolio...</div></div>';
+    }
   }
   h+='</div>';
+  
   h+='<div style="border-top:1px solid #d8e4d9;padding:10px 14px;display:flex;gap:8px;align-items:flex-end;background:#f4f7f2">';
-  h+='<textarea id="ai-input" rows="1" placeholder="'+(n>0?(S.akset?'Pregunta sobre tu portafolio...(Enter para enviar)':'Introduce API key arriba para chatear...'):'Carga productos primero...')+'" style="flex:1;resize:none;padding:8px 10px;border:1px solid #d8e4d9;border-radius:8px;font-size:12px;font-family:inherit;background:#fff;outline:none;min-height:36px;max-height:100px" '+((!n||!S.akset||S.aiLoading)?'disabled':'')+'>'+esc(S.aiInput||'')+'</textarea>';
-  if(S.aiMsgs&&S.aiMsgs.length)h+='<button class="sbtn sm" id="btn-clear-ai">↺</button>';
-  h+='<button class="sbtn pri" id="btn-send-ai" style="height:36px;padding:0 14px" '+((!S.aiInput||!S.aiInput.trim()||!n||!S.akset||S.aiLoading)?'disabled':'')+'>→</button>';
+  h+='<textarea id="ai-input" rows="1" placeholder="'+(n>0?(S.akset?'Pregunta en español... (Enter para enviar, Shift+Enter para nueva línea)':'Conecta tu API key arriba para chatear...'):'Carga productos primero...')+'" style="flex:1;resize:none;padding:7px 10px;border:1px solid #d8e4d9;border-radius:8px;font-size:12px;font-family:inherit;background:#fff;outline:none;min-height:36px;max-height:100px" '+((!n||!S.akset||S.aiLoading)?'disabled':'')+'>'+esc(S.aiInput||'')+'</textarea>';
+  h+='<button class="sbtn pri" id="btn-send-ai" style="height:36px;padding:0 14px;flex-shrink:0" '+((!S.aiInput||!S.aiInput.trim()||!n||!S.akset||S.aiLoading)?'disabled':'')+'>→</button>';
   h+='</div></div>';
+  
   el.innerHTML=h;
-  // Scroll to bottom
   setTimeout(function(){var msgs=document.getElementById('ai-msgs');if(msgs)msgs.scrollTop=msgs.scrollHeight;},50);
 }
 
