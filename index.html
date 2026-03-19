@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NutriSignal</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f4f7f2;color:#0f1a0f;font-size:14px;line-height:1.5}
@@ -79,12 +80,16 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
     <button class="tab" data-tab="heat">Heatmap</button>
     <button class="tab" data-tab="claims">EU Claims</button>
     <button class="tab" data-tab="reform">Reformulación</button>
+    <button class="tab" data-tab="upload">Importar Excel</button>
+    <button class="tab" data-tab="ai">AI Insights</button>
   </nav>
   <div id="dash" class="page on"></div>
   <div id="prods" class="page"></div>
   <div id="heat" class="page"></div>
   <div id="claims" class="page"></div>
   <div id="reform" class="page"></div>
+  <div id="upload" class="page"></div>
+  <div id="ai" class="page"></div>
 </div>
 
 <script>
@@ -330,7 +335,7 @@ function renderProds(){
     h+=sel('nsCat','Nutri-Score',[{v:'General Foods',l:'General Foods'},{v:'Beverages',l:'Beverages'},{v:'Fats-Oils-Nuts-Seeds',l:'Fats/Oils/Nuts'}]);
     h+='</div></div></div>';
     h+='<div class="card" style="margin-top:10px"><div class="ch">Nutrientes por 100g o 100ml</div><div class="cb"><div class="fgrid f3">';
-    [['energy','Energía (kJ)',true],['totalFat','Grasa total (g)',false],['satFat','Grasa sat. (g)',true],['sugars','Azúcares (g)',true],['salt','Sal (g)',false],['protein','Proteína (g)',true],['fibre','Fibra (g)',true],['fvnl','FVNL %',false]].forEach(function(t){h+=fld(t[0],t[1],t[2]);});
+    [['energy','Energía (kJ)',true],['totalFat','Grasa total (g)',false],['satFat','Grasa sat. (g)',true],['sugars','Azúcares (g)',true],['salt','Sal (g)',false],['protein','Proteína (g)',true],['fibre','Fibra (g)',true],['fvnl','FVNL %',false],['sales','Ventas anuales (€)',false]].forEach(function(t){h+=fld(t[0],t[1],t[2]);});
     h+='</div></div></div>';
     h+='<div style="display:flex;gap:8px;margin-top:10px">';
     h+='<button class="sbtn pri" id="btn-save-product">'+(S.editId?'✓ Guardar cambios':'✚ Añadir producto')+'</button>';
@@ -342,7 +347,7 @@ function renderProds(){
     el.innerHTML=h;
 
     // Live update listeners using proper event listeners
-    ['energy','totalFat','satFat','sugars','salt','protein','fibre','fvnl','name'].forEach(function(k){
+    ['energy','totalFat','satFat','sugars','salt','protein','fibre','fvnl','name','sales'].forEach(function(k){
       var inp=document.getElementById('f-'+k);
       if(inp)inp.addEventListener('input',function(){
         S.form[k]=this.value;
@@ -535,13 +540,13 @@ function renderReform(){
 }
 
 // ── RENDER ALL ────────────────────────────────────────────────────
-function renderAll(){renderDash();renderProds();renderHeat();renderClaims();renderReform();}
+function renderAll(){renderDash();renderProds();renderHeat();renderClaims();renderReform();renderUpload();renderAI();}
 
 // ── SAVE PRODUCT ──────────────────────────────────────────────────
 function saveProduct(){
   var f={};
   ['name','brand','category','npmType','hsrCat','nsCat'].forEach(function(k){var e=document.getElementById('f-'+k);if(e)f[k]=e.value;});
-  ['energy','totalFat','satFat','sugars','salt','protein','fibre','fvnl'].forEach(function(k){var e=document.getElementById('f-'+k);if(e)f[k]=e.value;});
+  ['energy','totalFat','satFat','sugars','salt','protein','fibre','fvnl','sales'].forEach(function(k){var e=document.getElementById('f-'+k);if(e)f[k]=e.value;});
   var errs={};
   if(!f.name||!f.name.trim())errs.name='Obligatorio';
   if(f.satFat&&f.totalFat&&+f.satFat>+f.totalFat)errs.satFat='No puede superar grasa total';
@@ -550,7 +555,8 @@ function saveProduct(){
     energy:f.energy?+f.energy:null,totalFat:f.totalFat?+f.totalFat:null,
     satFat:+f.satFat||0,sugars:+f.sugars||0,salt:f.salt?+f.salt:null,
     protein:+f.protein||0,fibre:+f.fibre||0,fvnl:+f.fvnl||0,fvl:+f.fvnl||0,
-    npmType:f.npmType||'Food',hsrCat:f.hsrCat||'Category 2',nsCat:f.nsCat||'General Foods'};
+    npmType:f.npmType||'Food',hsrCat:f.hsrCat||'Category 2',nsCat:f.nsCat||'General Foods',
+    sales:f.sales?+f.sales:0};
   if(S.editId){prods=prods.map(function(x){return x.id===S.editId?p:x;});}
   else{prods.push(p);}
   S.editId=null;S.addMode=false;S.ferrs={};
@@ -569,8 +575,29 @@ document.addEventListener('click',function(e){
     document.querySelectorAll('.page').forEach(function(p){p.classList.remove('on');});
     document.getElementById(t.dataset.tab).classList.add('on');
     S.fcat='All';
+    if(t.dataset.tab==='ai')renderAI();
+    if(t.dataset.tab==='upload')renderUpload();
     return;
   }
+
+  // Upload file pick
+  if(t.id==='btn-pick-file'){document.getElementById('file-input').click();return;}
+  if(t.id==='btn-dl-template'){downloadTemplate();return;}
+  if(t.id==='btn-confirm-import'){
+    var prev=document.getElementById('upload-preview');
+    if(prev&&prev._pendingProds){prods=prods.concat(prev._pendingProds);renderAll();
+      document.querySelectorAll('.tab').forEach(function(b){b.classList.remove('on');});
+      document.querySelector('.tab[data-tab=prods]').classList.add('on');
+      document.querySelectorAll('.page').forEach(function(p){p.classList.remove('on');});
+      document.getElementById('prods').classList.add('on');}
+    return;
+  }
+  if(t.id==='btn-cancel-import'){var pv=document.getElementById('upload-preview');if(pv)pv.innerHTML='';return;}
+  if(t.id==='btn-connect-ai'){var ki=document.getElementById('ai-key-inp');if(ki&&ki.value){AI_KEY=ki.value;renderAI();}return;}
+  if(t.id==='btn-disconnect-ai'){AI_KEY='';AI_MSGS=[];renderAI();return;}
+  if(t.id==='btn-send-ai'){sendAI();return;}
+  if(t.id==='btn-clear-ai'){AI_MSGS=[];renderAI();return;}
+  if(t.matches('.ai-sugg[data-q]')){sendAI(t.dataset.q);return;}
 
   // Load samples
   if(t.id==='btn-load-samples'||t.id==='btn-load-samples2'||t.id==='btn-load-samples3'){
@@ -605,6 +632,7 @@ document.addEventListener('click',function(e){
       satFat:p.satFat!=null?p.satFat:'',sugars:p.sugars!=null?p.sugars:'',
       salt:p.salt!=null?p.salt:'',protein:p.protein!=null?p.protein:'',
       fibre:p.fibre!=null?p.fibre:'',fvnl:p.fvnl!=null?p.fvnl:'',
+      sales:p.sales!=null?p.sales:'',
       npmType:p.npmType||'Food',hsrCat:p.hsrCat||'Category 2',nsCat:p.nsCat||'General Foods'};
     S.editId=id;S.addMode=true;S.ferrs={};renderProds();return;
   }
@@ -618,8 +646,9 @@ document.addEventListener('click',function(e){
   if(t.matches('.chip[data-cat]')){S.fcat=t.dataset.cat;renderProds();renderHeat();return;}
 
   // Claims product selector
-  if(t.matches('[data-sel-claim]')){
-    var id2=+t.dataset.selClaim;
+  var claimCard=t.closest('[data-sel-claim]');
+  if(claimCard){
+    var id2=+claimCard.dataset.selClaim;
     S.csel=S.csel===id2?null:id2;
     renderClaims();return;
   }
@@ -638,6 +667,7 @@ document.addEventListener('click',function(e){
 // Search input
 document.addEventListener('input',function(e){
   if(e.target.id==='srch-inp'){S.srch=e.target.value;renderProds();return;}
+  if(e.target.id==='ai-inp'){return;}
 
   // Reformulation sliders
   if(e.target.matches('.reform-slider[data-field]')){
@@ -649,6 +679,7 @@ document.addEventListener('input',function(e){
 // Reform product select
 document.addEventListener('change',function(e){
   if(e.target.id==='reform-select'){S.rid=+e.target.value;S.rmods={};renderReform();return;}
+  if(e.target.id==='file-input'&&e.target.files[0]){processUploadFile(e.target.files[0]);return;}
 });
 
 // ── INIT ──────────────────────────────────────────────────────────
