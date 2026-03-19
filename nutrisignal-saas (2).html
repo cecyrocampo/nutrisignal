@@ -1,0 +1,2612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NutriSignal — Regulatory Intelligence Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F4F7F2;--bg2:#FDFEFE;--bg3:#EEF2EC;--bg4:#E6EDE4;
+  --card:#FDFEFE;--card2:#F4F7F2;
+  --border:#D8E4D9;--border2:#C8D8CA;
+  --sage:#3A6B4A;--sage2:#2e5a3c;--sage3:#4D8C5F;
+  --sage-dim:rgba(58,107,74,.08);--sage-glow:rgba(58,107,74,.18);
+  --amber:#C8621A;--amber-dim:rgba(200,98,26,.1);
+  --red:#B33A2E;--red-dim:rgba(179,58,46,.1);
+  --green:#1E7A45;--green-dim:rgba(30,122,69,.1);
+  --text:#0F1A0F;--text2:#374037;--text3:#8A9A8A;
+  --sans:'DM Sans',system-ui,sans-serif;--mono:'JetBrains Mono',monospace;
+  --r:8px;--r-lg:14px;--r-xl:20px;
+  --shadow:0 2px 16px rgba(15,26,15,.07);
+  --shadow-lg:0 8px 40px rgba(15,26,15,.12);
+}
+html,body,#root{height:100%;background:var(--bg);color:var(--text);font-family:var(--sans)}
+body{overflow:hidden}
+button{font-family:var(--sans);cursor:pointer;border:none;background:none}
+input,select,textarea{font-family:var(--sans)}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:var(--bg3)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+/* ── App Layout ── */
+.app{display:flex;height:100vh;overflow:hidden}
+
+/* ── Sidebar ── */
+.sidebar{
+  width:220px;flex-shrink:0;
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;z-index:10;
+  background:var(--bg3);
+}
+.logo{padding:20px 20px 0;margin-bottom:8px}
+.logo-mark{
+  font-family:'DM Serif Display',Georgia,serif;font-size:18px;font-weight:400;
+  color:var(--text);letter-spacing:-.01em;
+}
+.logo-mark span{color:var(--sage)}
+.logo-sub{font-size:10px;color:var(--text3);font-weight:500;letter-spacing:.08em;text-transform:uppercase;margin-top:2px}
+.nav{flex:1;padding:16px 10px;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
+.nav-section-label{
+  font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--text3);padding:12px 10px 6px;
+}
+.nav-item{
+  display:flex;align-items:center;gap:10px;padding:9px 12px;
+  border-radius:var(--r);cursor:pointer;transition:all .15s;
+  font-size:13px;font-weight:500;color:var(--text2);
+}
+.nav-item:hover{background:var(--bg3);color:var(--sage)}
+.nav-item.active{background:rgba(58,107,74,.1);color:var(--sage);font-weight:600;border-left:2px solid var(--sage);margin-left:-2px}
+.nav-item .nav-icon{font-size:15px;width:18px;text-align:center;flex-shrink:0}
+.sidebar-footer{padding:14px;border-top:1px solid var(--border);background:var(--bg3)}
+.product-count{
+  font-size:11px;color:var(--text3);
+  display:flex;align-items:center;gap:6px;
+}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--sage3);animation:blink 2s ease infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── Main Content ── */
+.main{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.topbar{
+  height:52px;flex-shrink:0;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 28px;background:var(--bg2);box-shadow:0 1px 0 var(--border);
+}
+.topbar-title{font-size:14px;font-weight:600;color:var(--text);letter-spacing:-.01em}
+.topbar-actions{display:flex;gap:8px}
+.page{flex:1;overflow-y:auto;padding:28px;background:var(--bg)}
+
+/* ── Buttons ── */
+.btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 16px;border-radius:var(--r);font-size:13px;font-weight:600;
+  transition:all .15s;cursor:pointer;border:none;
+}
+.btn-primary{background:var(--sage);color:#FFFFFF}
+.btn-primary:hover{background:var(--sage2)}
+.btn-ghost{background:transparent;color:var(--text2);border:1.5px solid var(--border)}
+.btn-ghost:hover{background:var(--bg3);color:var(--sage);border-color:var(--sage)}
+.btn-sm{padding:6px 12px;font-size:12px}
+.btn-danger{background:var(--red-dim);color:var(--red);border:1px solid rgba(232,85,85,.2)}
+.btn-danger:hover{background:rgba(232,85,85,.2)}
+
+/* ── Cards ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--shadow)}
+.card-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg3)}
+.card-title{font-size:13px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px}
+.card-body{padding:20px}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+.kpi{
+  background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);
+  padding:18px 20px;position:relative;overflow:hidden;
+}
+.kpi::after{content:'';position:absolute;top:-30px;right:-30px;width:80px;height:80px;border-radius:50%;background:rgba(58,107,74,.06);pointer-events:none}
+.kpi-label{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:8px}
+.kpi-val{font-size:28px;font-weight:700;color:var(--text);font-family:var(--mono);line-height:1}
+.kpi-sub{font-size:11px;color:var(--text3);margin-top:4px}
+.kpi-val.green{color:var(--sage)}
+.kpi-val.amber{color:var(--amber)}
+.kpi-val.red{color:var(--red)}
+
+/* ── Grid layouts ── */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+
+/* ── Tags ── */
+.tag{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600}
+.tag-green{background:rgba(30,122,69,.12);color:#1E7A45}
+.tag-red{background:rgba(179,58,46,.12);color:var(--red)}
+.tag-amber{background:rgba(200,98,26,.12);color:var(--amber)}
+.tag-grey{background:var(--bg3);color:var(--text3);border:1px solid var(--border)}
+
+/* ── Table ── */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{
+  text-align:left;padding:10px 14px;background:var(--bg3);border-bottom:1.5px solid var(--border);
+  font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--text3);border-bottom:1px solid var(--border);white-space:nowrap;
+  position:sticky;top:0;z-index:1;
+}
+td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text2);white-space:nowrap}
+tr:hover td{background:var(--bg3);color:var(--text);transition:background .1s}
+tr:last-child td{border-bottom:none}
+.sort-btn{background:none;border:none;cursor:pointer;color:var(--text3);font-size:10px;margin-left:4px}
+.sort-btn:hover{color:var(--sage)}
+
+/* ── Inputs ── */
+.input{
+  background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--r);
+  padding:8px 12px;font-size:13px;color:var(--text);outline:none;width:100%;
+  transition:border-color .15s;
+}
+.input:focus{border-color:var(--sage)}
+.input::placeholder{color:var(--text3)}
+.select{
+  background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--r);
+  padding:8px 12px;font-size:13px;color:var(--text);outline:none;cursor:pointer;
+}
+.select:focus{border-color:var(--sage)}
+.label{font-size:11px;font-weight:600;color:var(--text3);margin-bottom:4px;display:block}
+.field{margin-bottom:12px}
+
+/* ── Score badges ── */
+.score-badge{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:36px;height:24px;border-radius:6px;font-size:11px;font-weight:800;
+  font-family:var(--mono);letter-spacing:.02em;
+}
+.score-green{background:rgba(30,122,69,.12);color:#1E7A45}
+.score-amber{background:rgba(200,98,26,.12);color:var(--amber)}
+.score-red{background:rgba(179,58,46,.12);color:var(--red)}
+.score-grey{background:rgba(155,170,148,.08);color:var(--text3)}
+
+/* ── Heatmap ── */
+.heatmap-cell{
+  min-width:60px;height:32px;display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;border-radius:4px;cursor:default;
+  transition:transform .1s;font-family:var(--mono);
+}
+.heatmap-cell:hover{transform:scale(1.08);z-index:1;position:relative}
+.hm-pass{background:rgba(30,122,69,.14);color:#1E7A45}
+.hm-fail{background:rgba(179,58,46,.14);color:var(--red)}
+.hm-na{background:var(--bg3);color:var(--text3)}
+
+/* ── Slider ── */
+.slider{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:2px;background:var(--border);outline:none}
+.slider::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--sage);cursor:pointer;transition:transform .1s}
+.slider::-webkit-slider-thumb:hover{transform:scale(1.2)}
+
+/* ── AI Insights ── */
+.insight-card{
+  background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);
+  padding:18px 20px;margin-bottom:12px;position:relative;overflow:hidden;
+}
+.insight-card::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
+}
+.insight-risk::before{background:var(--red);opacity:.7}
+.insight-win::before{background:var(--sage)}
+.insight-strategic::before{background:var(--amber)}
+.insight-tag{font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}
+.insight-text{font-size:13px;color:var(--text);line-height:1.6}
+.insight-action{font-size:12px;color:var(--text3);margin-top:6px;font-style:italic}
+.typing-cursor{display:inline-block;width:2px;height:13px;background:var(--sage);margin-left:2px;animation:blink .7s ease infinite;vertical-align:middle}
+
+/* ── Upload zone ── */
+.upload-zone{
+  border:2px dashed var(--border);border-radius:var(--r-xl);background:var(--bg2);
+  padding:48px;text-align:center;transition:all .2s;cursor:pointer;
+}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--sage);background:rgba(58,107,74,.05)}
+.upload-icon{font-size:36px;margin-bottom:12px}
+.upload-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px}
+.upload-sub{font-size:13px;color:var(--text3)}
+
+/* ── Chart containers ── */
+.chart-wrap{position:relative;height:200px}
+.chart-wrap-sm{position:relative;height:160px}
+
+/* ── Progress bar ── */
+.progress-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:6px;}
+.progress-fill{height:100%;border-radius:3px;transition:width .6s cubic-bezier(.4,0,.2,1)}
+.fill-green{background:var(--sage)}
+.fill-amber{background:var(--amber)}
+.fill-red{background:var(--red)}
+
+/* ── Modal ── */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);
+  z-index:100;display:flex;align-items:center;justify-content:center;
+}
+.modal{
+  background:var(--card);border:1px solid var(--border);border-radius:var(--r-xl);
+  width:600px;max-width:95vw;max-height:90vh;overflow-y:auto;
+  box-shadow:var(--shadow-lg);
+}
+.modal-header{
+  padding:20px 24px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.modal-body{padding:24px}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+
+/* ── Tooltip ── */
+.tooltip{position:relative;cursor:help}
+.tooltip::after{
+  content:attr(data-tip);position:absolute;bottom:calc(100% + 8px);left:50%;
+  transform:translateX(-50%);background:var(--text);border:1px solid var(--border);
+  color:var(--bg2);font-size:11px;padding:6px 10px;border-radius:6px;
+  white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .15s;z-index:50;
+}
+.tooltip:hover::after{opacity:1}
+
+/* ── Empty state ── */
+.empty{text-align:center;padding:64px;color:var(--text3);}
+.empty h3{color:var(--text2) !important}
+.empty-icon{font-size:40px;margin-bottom:12px}
+.empty h3{font-size:16px;font-weight:600;color:var(--text2);margin-bottom:6px}
+.empty p{font-size:13px;line-height:1.6}
+
+/* ── Scrollable table container ── */
+.table-container{max-height:420px;overflow-y:auto;border-radius:var(--r)}
+
+/* ── Chip filter ── */
+.chip-group{display:flex;flex-wrap:wrap;gap:6px}
+.chip{
+  padding:4px 12px;border-radius:99px;font-size:12px;font-weight:500;cursor:pointer;
+  border:1px solid var(--border2);color:var(--text3);transition:all .15s;background:transparent;
+}
+.chip:hover,.chip.active{background:rgba(58,107,74,.1);color:var(--sage);border-color:var(--sage)}
+
+/* ── Trend indicator ── */
+.trend{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:600}
+.trend-up{color:var(--sage)}
+.trend-down{color:var(--red)}
+
+/* ── Animations ── */
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.fade-in{animation:fadeIn .3s ease both}
+.fade-in-2{animation:fadeIn .3s ease .1s both}
+.fade-in-3{animation:fadeIn .3s ease .2s both}
+
+/* ── Responsive ── */
+@media(max-width:768px){
+  .sidebar{width:60px}
+  .nav-item span,.logo-sub,.logo-mark{display:none}
+  .kpi-grid{grid-template-columns:1fr 1fr}
+  .grid-2,.grid-3{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback, useMemo } = React;
+
+// ════════════════════════════════════════════════════════════════════
+// CALCULATION ENGINE — Official regulatory thresholds
+// ════════════════════════════════════════════════════════════════════
+const Engine = {
+  // UK NPM 2018
+  npm: {
+    A_E: [335,670,1005,1340,1675,2010,2345,2680,3015,3350],
+    A_S: [4.5,9,13.5,18,22.5,27,31,36,40,45],
+    A_F: [1,2,3,4,5,6,7,8,9,10],
+    A_N: [90,180,270,360,450,540,630,720,810,900],
+    C_P: [0,1.6,3.2,4.8,6.4,8.0],
+    C_Fi: [0,0.9,1.9,2.8,3.7,4.7],
+    matchLower(v, thresholds, max=10) {
+      if (v===null||v===undefined||isNaN(v)) return null;
+      let pts=0;
+      for(let i=0;i<thresholds.length;i++) if(v>thresholds[i]) pts=i+1;
+      return Math.min(pts,max);
+    },
+    matchStepLower(v, steps, max) {
+      let pts=0;
+      for(let i=steps.length-1;i>=0;i--) if(v>steps[i]) { pts=i; break; }
+      return Math.min(pts,max);
+    },
+    calc(p) {
+      const na = p.sodium ?? (p.salt ? p.salt*400 : null);
+      const a1=this.matchLower(p.energy,this.A_E);
+      const a2=this.matchLower(p.sugars,this.A_S);
+      const a3=this.matchLower(p.satFat,this.A_F);
+      const a4=this.matchLower(na,this.A_N);
+      if([a1,a2,a3,a4].some(x=>x===null)) return {error:'Missing inputs'};
+      const aTotal=a1+a2+a3+a4;
+      const fvnl=p.fvnl??0;
+      const c1=fvnl>=80?5:fvnl>=60?2:fvnl>=40?1:0;
+      let c2=0; for(let i=this.C_Fi.length-1;i>=0;i--) if((p.fibre??0)>this.C_Fi[i]){c2=i;break;}
+      c2=Math.min(c2,5);
+      let c3r=0; for(let i=this.C_P.length-1;i>=0;i--) if((p.protein??0)>this.C_P[i]){c3r=i;break;}
+      c3r=Math.min(c3r,5);
+      let c3=c3r; let protBlocked=false;
+      if(aTotal>=11&&c1<5){c3=0;protBlocked=true;}
+      const cTotal=c1+c2+c3;
+      const score=aTotal-cTotal;
+      const isDrink=p.npmType==='Drink';
+      const lessHealthy=isDrink?score>=1:score>=4;
+      return {a1,a2,a3,a4,aTotal,c1,c2,c3,c3r,protBlocked,cTotal,score,lessHealthy,isDrink,
+              result:lessHealthy?'Less Healthy':'Healthy',grade:score.toString()};
+    }
+  },
+
+  // HSR v9
+  hsr: {
+    T1_E:[60,120,210,300,400,500,600,700,800,900,1000],
+    T1_S:[0.5,2,4,6,8,10,12,14,16,18,20],
+    T2_E:[335,670,1005,1340,1675,2010,2345,2680,3015,3350,3685],
+    T2_SF:[1,2,3,4,5,6,7,8,9,10,11],
+    T2_S:[2,4,7,10,14,17,20,24,27,31,34],
+    T2_N:[90,180,270,360,450,540,630,720,810,900,990],
+    V1:[0,25,33,41,49,57,65,73,81,89,96],
+    V2:[0,25,33,41,49,57,65,73,81],
+    PF_P:[0,1.6,3.2,4.8,6.4,8,9.6,11.6,13.9,16.7,20,24,28.9,34.7,41.6,50],
+    PF_F:[0,0.9,1.9,2.8,3.7,4.7,5.4,6.3,7.3,8.4,9.7,11.2,13,15,17.3,20],
+    upper(v,t,max=10){for(let i=0;i<t.length;i++)if(v<=t[i])return i;return Math.min(t.length,max);},
+    lower(v,mins,max=10){let p=0;for(let i=0;i<mins.length;i++)if(v>=mins[i])p=i;return Math.min(p,max);},
+    stars(score,cat){
+      const t={
+        'Category 1':[[-Infinity,4],[-1,3.5],[1,3],[3,2.5],[5,2],[7,1.5],[9,1],[11,0.5]],
+        'Category 1D':[[-Infinity,4.5],[-1,4.5],[0,4],[1,3.5],[2,3],[3,2.5],[4,2],[5,1.5],[6,1],[Infinity,0.5]],
+        'Category 2':[[-11,5],[-7,4.5],[-2,4],[2,3.5],[6,3],[11,2.5],[15,2],[20,1.5],[24,1],[Infinity,0.5]],
+        'Category 2D':[[-2,5],[0,4.5],[2,4],[3,3.5],[5,3],[7,2.5],[8,2],[10,1.5],[12,1],[Infinity,0.5]],
+        'Category 3':[[13,5],[16,4.5],[20,4],[23,3.5],[27,3],[30,2.5],[34,2],[37,1.5],[41,1],[Infinity,0.5]],
+        'Category 3D':[[24,5],[26,4.5],[28,4],[30,3.5],[31,3],[33,2.5],[35,2],[37,1.5],[39,1],[Infinity,0.5]],
+      };
+      const table=t[cat]||t['Category 2'];
+      for(const[max,s]of table)if(score<=max)return s;
+      return 0.5;
+    },
+    calc(p){
+      const cat=p.hsrCat||'Category 2';
+      if(p.hsrAuto&&p.hsrAuto!=='No'){
+        const m={'Plain water':5,'Unsweetened flavoured water':4.5,'Eligible F&V':5};
+        const s=m[p.hsrAuto]||5;
+        return {auto:true,stars:s,result:`${s}★`,grade:`${s}★`,score:null};
+      }
+      const na=p.sodium??(p.salt?p.salt*400:0);
+      let b1,b2=0,b3,b4=0;
+      if(cat==='Category 1'){b1=this.upper(p.energy,this.T1_E);b3=this.upper(p.sugars,this.T1_S);}
+      else{b1=this.upper(p.energy,this.T2_E);b2=this.upper(p.satFat,this.T2_SF);b3=this.upper(p.sugars,this.T2_S);b4=this.upper(na,this.T2_N);}
+      const base=b1+b2+b3+b4;
+      const fvnl=p.fvnl??0;
+      const vPts=cat==='Category 1'?Math.min(10,this.lower(fvnl,this.V1)):Math.min(8,this.lower(fvnl,this.V2));
+      let pPts=0,pElig=false;
+      if(cat!=='Category 1'&&(base<13||vPts>=5)){pElig=true;pPts=Math.min(15,this.lower(p.protein??0,this.PF_P));}
+      const fPts=(!['Category 1','Category 1D'].includes(cat))?Math.min(15,this.lower(p.fibre??0,this.PF_F)):0;
+      const score=base-vPts-pPts-fPts;
+      const s=this.stars(score,cat);
+      return {b1,b2,b3,b4,base,vPts,pPts,fPts,score,stars:s,pElig,result:`${s}★`,grade:`${s}★`};
+    }
+  },
+
+  // Nutri-Score 2023
+  ns: {
+    GF_E:[335,670,1005,1340,1675,2010,2345,2680,3015,3350],
+    GF_SF:[1,2,3,4,5,6,7,8,9,10],
+    GF_S:[3.4,6.8,10,14,17,20,24,27,31,34,37,41,44,48,51],
+    SALT:[0.2,0.4,0.6,0.8,1,1.2,1.4,1.6,1.8,2,2.2,2.4,2.6,2.8,3,3.2,3.4,3.6,3.8,4],
+    FA_E:[120,240,360,480,600,720,840,960,1080,1200],
+    FA_R:[0.10,0.16,0.22,0.28,0.34,0.40,0.46,0.52,0.58,0.64],
+    P_Prot:[0,2.4,4.8,7.2,9.6,12,14,17],
+    P_Fib:[0,3,4.1,5.2,6.3,7.4],
+    matchLower(v,t,max){let p=0;for(let i=0;i<t.length;i++)if(v>t[i])p=i+1;return Math.min(p,max);},
+    lower(v,mins,max){let p=0;for(let i=0;i<mins.length;i++)if(v>=mins[i])p=i;return Math.min(p,max);},
+    bevE(v){const t=[[30,0],[90,1],[150,2],[210,3],[240,4],[270,5],[300,6],[330,7],[360,8],[390,9]];for(const[m,p]of t)if(v<=m)return p;return 10;},
+    bevS(v){const t=[[0.5,0],[2,1],[3.5,2],[5,3],[6,4],[7,5],[8,6],[9,7],[10,8],[11,9]];for(const[m,p]of t)if(v<=m)return p;return 10;},
+    grade(score,isBev){
+      if(isBev)return score<=2?'A':score<=5?'B':score<=9?'C':score<=13?'D':'E';
+      return score<=-1?'A':score<=2?'B':score<=10?'C':score<=18?'D':'E';
+    },
+    calc(p){
+      const cat=p.nsCat||'General Foods';
+      const isBev=cat==='Beverages',isFats=cat==='Fats-Oils-Nuts-Seeds';
+      const salt=p.salt??(p.sodium?p.sodium/400:0);
+      const fvl=p.fvl??p.fvnl??0;
+      let n1,n2,n3,n4,n5=0;
+      if(isBev){n1=this.bevE(p.energy);n2=Math.min(10,p.satFat<=1?0:p.satFat<=2?1:p.satFat<=3?2:p.satFat<=4?3:p.satFat<=5?4:p.satFat<=6?5:p.satFat<=7?6:p.satFat<=8?7:p.satFat<=9?8:p.satFat<=10?9:10);n3=this.bevS(p.sugars);n4=this.matchLower(salt,this.SALT,20);n5=p.nns==='Present'?4:0;}
+      else if(isFats){const es=(p.satFat||0)*37;const ratio=(p.totalFat&&p.totalFat>0)?(p.satFat||0)/p.totalFat:0;n1=this.matchLower(es,this.FA_E,10);n2=this.matchLower(ratio,this.FA_R,10);n3=this.matchLower(p.sugars,this.GF_S,15);n4=this.matchLower(salt,this.SALT,20);}
+      else{n1=this.matchLower(p.energy,this.GF_E,10);n2=this.matchLower(p.satFat,this.GF_SF,10);n3=this.matchLower(p.sugars,this.GF_S,15);n4=this.matchLower(salt,this.SALT,20);}
+      const nTotal=n1+n2+n3+n4+n5;
+      const p1=this.lower(p.fibre??0,this.P_Fib,7);
+      const p2=fvl>=80?5:fvl>=60?2:fvl>=40?1:0;
+      let p3=this.lower(p.protein??0,this.P_Prot,7);
+      if(p.isRedMeat==='Yes')p3=Math.min(2,p3);
+      let p3a=p3;
+      if(p.isCheese!=='Yes'){
+        const thresh=isFats?7:11;
+        if(nTotal>=thresh)p3a=0;
+      }
+      const pTotal=p1+p2+p3a;
+      const score=nTotal-pTotal;
+      const gr=this.grade(score,isBev);
+      return {n1,n2,n3,n4,n5,nTotal,p1,p2,p3,p3a,pTotal,score,grade:gr,isBev,result:gr};
+    }
+  },
+
+  // WHO %IR
+  who: {
+    calc(p) {
+      const na=p.sodium??(p.salt?p.salt*400:null);
+      const satFatThr=10/100*2000/9/10; // 2.22g per 100g
+      const sugarThr=10/100*2000/4/10;  // 5g per 100g (10% energy)
+      const saltThr=5/10;               // 0.5g per 100g
+      const fibreThr=25/10;             // 2.5g per 100g
+      const irSF=(p.satFat??0)/satFatThr*100;
+      const irSug=(p.sugars??0)/sugarThr*100;
+      const irSalt=p.salt?(p.salt/saltThr*100):(na?na/400/saltThr*100:null);
+      const irFib=p.fibre?(p.fibre/fibreThr*100):null;
+      const compliant=irSF<=100&&irSug<=100&&(irSalt===null||irSalt<=100);
+      return {irSF,irSug,irSalt,irFib,compliant,result:compliant?'Pass':'Fail'};
+    }
+  },
+
+  // Full product calc
+  calcAll(p) {
+    const npm=this.npm.calc(p);
+    const hsr=this.hsr.calc(p);
+    const ns=this.ns.calc(p);
+    const who=this.who.calc(p);
+    // Market compliance
+    const ukPass=!npm.error&&!npm.lessHealthy;
+    const nsPass=['A','B'].includes(ns.grade);
+    const hsrPass=hsr.stars>=3.5;
+    const markets={
+      UK:ukPass?'Pass':'Fail',
+      Ireland:ukPass?'Pass':'Fail',
+      France:nsPass?'Pass':'Fail',
+      Belgium:nsPass?'Pass':'Fail',
+      Netherlands:nsPass?'Pass':'Fail',
+      Australia:hsrPass?'Pass':'Fail',
+      'New Zealand':hsrPass?'Pass':'Fail',
+      WHO:who.compliant?'Pass':'Fail',
+    };
+    return {npm,hsr,ns,who,markets};
+  }
+};
+
+
+// ════════════════════════════════════════════════════════════════════
+// EU NUTRITION CLAIMS ENGINE — EC 1924/2006
+// ════════════════════════════════════════════════════════════════════
+const Claims = {
+  // kcal from kJ
+  kcal(kj) { return kj / 4.184; },
+
+  // Energy from protein (kcal): protein g × 4
+  // Energy from fat (kcal): fat g × 9
+  // Energy from carbs (kcal): carbs g × 4
+  // % energy from nutrient
+  pctEnergy(nutrientG, type, totalKcal) {
+    if (!totalKcal || totalKcal <= 0) return null;
+    const factors = { protein: 4, fat: 9, satFat: 9, carbs: 4 };
+    const factor = factors[type];
+    if (!factor) return null;
+    return (nutrientG * factor / totalKcal) * 100;
+  },
+
+  // Is liquid? (per 100 ml thresholds apply)
+  isLiquid(p) {
+    return ['Beverages','beverages','drink','Drink'].includes(p.npmType) ||
+           p.isLiquid === true ||
+           ['Beverages','Category 1'].includes(p.nsCat || p.hsrCat);
+  },
+
+  evaluate(p) {
+    const liquid = this.isLiquid(p);
+    const totalKcal = p.energy ? this.kcal(p.energy) : null;
+    const results = [];
+
+    const add = (claim, status, condition, notes='') => {
+      results.push({ claim, status, condition, notes });
+    };
+
+    // ── ENERGY ────────────────────────────────────────────────────
+    if (p.energy == null) {
+      add('Low energy', 'insufficient', '—', 'Energy data required');
+    } else {
+      const limit = liquid ? 20 : 40; // kcal
+      const kcal = this.kcal(p.energy);
+      if (kcal <= limit) {
+        add('Low energy', 'eligible', `${kcal.toFixed(1)} kcal ≤ ${limit} kcal/100${liquid?'ml':'g'}`);
+      } else {
+        add('Low energy', 'ineligible', `${kcal.toFixed(1)} kcal > ${limit} kcal/100${liquid?'ml':'g'}`);
+      }
+    }
+    add('Energy-reduced', 'benchmark', '≥30% reduction vs reference', 'Benchmark product required');
+
+    // ── FAT ────────────────────────────────────────────────────────
+    if (p.totalFat == null) {
+      add('Low fat', 'insufficient', '—', 'Total fat data required');
+      add('Fat-free', 'insufficient', '—', 'Total fat data required');
+    } else {
+      const fat = p.totalFat;
+      const lowLimit = liquid ? 1.5 : 3;
+      if (fat <= lowLimit) {
+        add('Low fat', 'eligible', `${fat}g ≤ ${lowLimit}g/100${liquid?'ml':'g'}`);
+      } else {
+        add('Low fat', 'ineligible', `${fat}g > ${lowLimit}g/100${liquid?'ml':'g'}`);
+      }
+      if (fat <= 0.5) {
+        add('Fat-free', 'eligible', `${fat}g ≤ 0.5g/100${liquid?'ml':'g'}`);
+      } else {
+        add('Fat-free', 'ineligible', `${fat}g > 0.5g/100${liquid?'ml':'g'}`);
+      }
+    }
+
+    // ── SATURATED FAT ─────────────────────────────────────────────
+    if (p.satFat == null) {
+      add('Low saturated fat', 'insufficient', '—', 'Saturated fat data required');
+      add('Saturated fat-free', 'insufficient', '—', 'Saturated fat data required');
+    } else {
+      const sf = p.satFat;
+      // Low: ≤1.5g/100g AND ≤10% of energy from sat fat
+      const pctSF = totalKcal ? this.pctEnergy(sf, 'satFat', totalKcal) : null;
+      const limitG = 1.5; // solids and liquids same for sat fat
+      if (pctSF === null) {
+        add('Low saturated fat', 'insufficient',
+          `${sf}g/100${liquid?'ml':'g'} — cannot check % energy`,
+          'Energy data required for % energy condition');
+      } else if (sf <= limitG && pctSF <= 10) {
+        add('Low saturated fat', 'eligible',
+          `${sf}g ≤ 1.5g AND ${pctSF.toFixed(1)}% ≤ 10% of energy`);
+      } else {
+        const fails = [];
+        if (sf > limitG) fails.push(`${sf}g > 1.5g/100g`);
+        if (pctSF > 10) fails.push(`${pctSF.toFixed(1)}% > 10% of energy`);
+        add('Low saturated fat', 'ineligible', fails.join(' AND '));
+      }
+      if (sf <= 0.1) {
+        add('Saturated fat-free', 'eligible', `${sf}g ≤ 0.1g/100${liquid?'ml':'g'}`);
+      } else {
+        add('Saturated fat-free', 'ineligible', `${sf}g > 0.1g/100${liquid?'ml':'g'}`);
+      }
+    }
+
+    // ── SUGARS ────────────────────────────────────────────────────
+    if (p.sugars == null) {
+      add('Low sugar', 'insufficient', '—', 'Total sugars data required');
+      add('Sugar-free', 'insufficient', '—', 'Total sugars data required');
+    } else {
+      const sug = p.sugars;
+      const lowLimit = liquid ? 2.5 : 5;
+      if (sug <= lowLimit) {
+        add('Low sugar', 'eligible', `${sug}g ≤ ${lowLimit}g/100${liquid?'ml':'g'}`);
+      } else {
+        add('Low sugar', 'ineligible', `${sug}g > ${lowLimit}g/100${liquid?'ml':'g'}`);
+      }
+      if (sug <= 0.5) {
+        add('Sugar-free', 'eligible', `${sug}g ≤ 0.5g/100${liquid?'ml':'g'}`);
+      } else {
+        add('Sugar-free', 'ineligible', `${sug}g > 0.5g/100${liquid?'ml':'g'}`);
+      }
+    }
+    // No added sugars — always requires formulation data
+    add('No added sugars', 'formulation',
+      'Cannot be determined from nutrition table',
+      'Requires ingredient/formulation data — must verify no mono/disaccharides added');
+    // Reduced sugars — requires benchmark
+    add('Reduced sugars', 'benchmark', '≥30% reduction vs reference', 'Benchmark product required');
+
+    // ── SALT / SODIUM ─────────────────────────────────────────────
+    const salt = p.salt != null ? p.salt :
+                 p.sodium != null ? p.sodium / 400 : null;
+    const sodium = p.sodium != null ? p.sodium :
+                   p.salt != null ? p.salt * 400 : null;
+
+    if (salt == null) {
+      ['Low salt','Very low salt','Salt-free','Low sodium'].forEach(c =>
+        add(c, 'insufficient', '—', 'Salt or sodium data required'));
+    } else {
+      // Low salt: ≤0.3g salt/100g
+      if (salt <= 0.3) add('Low salt','eligible', `${salt.toFixed(3)}g salt ≤ 0.3g/100g`);
+      else add('Low salt','ineligible', `${salt.toFixed(3)}g salt > 0.3g/100g`);
+      // Very low salt: ≤0.1g/100g
+      if (salt <= 0.1) add('Very low salt','eligible', `${salt.toFixed(3)}g salt ≤ 0.1g/100g`);
+      else add('Very low salt','ineligible', `${salt.toFixed(3)}g salt > 0.1g/100g`);
+      // Salt-free: ≤0.01g/100g
+      if (salt <= 0.01) add('Salt-free','eligible', `${salt.toFixed(4)}g salt ≤ 0.01g/100g`);
+      else add('Salt-free','ineligible', `${salt.toFixed(4)}g salt > 0.01g/100g`);
+      // Low sodium: ≤0.12g sodium/100g (≤120mg)
+      if (sodium != null) {
+        const sodiumG = sodium / 1000;
+        if (sodiumG <= 0.12) add('Low sodium','eligible', `${sodium.toFixed(0)}mg sodium ≤ 120mg/100g`);
+        else add('Low sodium','ineligible', `${sodium.toFixed(0)}mg sodium > 120mg/100g`);
+      } else {
+        const sodiumDerived = salt * 400;
+        const sodiumG = sodiumDerived / 1000;
+        if (sodiumG <= 0.12) add('Low sodium','eligible', `${sodiumDerived.toFixed(0)}mg sodium (derived) ≤ 120mg/100g`);
+        else add('Low sodium','ineligible', `${sodiumDerived.toFixed(0)}mg sodium (derived) > 120mg/100g`);
+      }
+    }
+
+    // ── FIBRE ────────────────────────────────────────────────────
+    if (p.fibre == null || totalKcal == null) {
+      add('Source of fibre', p.fibre==null?'insufficient':'insufficient',
+        '—', p.fibre==null?'Fibre data required':'Energy data required for kcal condition');
+      add('High fibre', 'insufficient', '—', 'Fibre and/or energy data required');
+    } else {
+      const fib = p.fibre;
+      const fibPer100kcal = (fib / totalKcal) * 100;
+      // Source: ≥3g/100g OR ≥1.5g/100kcal
+      if (fib >= 3 || fibPer100kcal >= 1.5) {
+        const met = [];
+        if (fib >= 3) met.push(`${fib}g ≥ 3g/100g`);
+        if (fibPer100kcal >= 1.5) met.push(`${fibPer100kcal.toFixed(2)}g ≥ 1.5g/100kcal`);
+        add('Source of fibre','eligible', met.join(' OR '));
+      } else {
+        add('Source of fibre','ineligible',
+          `${fib}g < 3g/100g AND ${fibPer100kcal.toFixed(2)}g < 1.5g/100kcal`);
+      }
+      // High fibre: ≥6g/100g OR ≥3g/100kcal
+      if (fib >= 6 || fibPer100kcal >= 3) {
+        const met = [];
+        if (fib >= 6) met.push(`${fib}g ≥ 6g/100g`);
+        if (fibPer100kcal >= 3) met.push(`${fibPer100kcal.toFixed(2)}g ≥ 3g/100kcal`);
+        add('High fibre','eligible', met.join(' OR '));
+      } else {
+        add('High fibre','ineligible',
+          `${fib}g < 6g/100g AND ${fibPer100kcal.toFixed(2)}g < 3g/100kcal`);
+      }
+    }
+
+    // ── PROTEIN ──────────────────────────────────────────────────
+    if (p.protein == null || totalKcal == null) {
+      add('Source of protein','insufficient','—','Protein and energy data required');
+      add('High protein','insufficient','—','Protein and energy data required');
+    } else {
+      const prot = p.protein;
+      const pctProt = this.pctEnergy(prot, 'protein', totalKcal);
+      // Source: ≥12% of energy
+      if (pctProt >= 12) {
+        add('Source of protein','eligible', `${pctProt.toFixed(1)}% of energy ≥ 12%`);
+      } else {
+        add('Source of protein','ineligible', `${pctProt.toFixed(1)}% of energy < 12%`);
+      }
+      // High: ≥20% of energy
+      if (pctProt >= 20) {
+        add('High protein','eligible', `${pctProt.toFixed(1)}% of energy ≥ 20%`);
+      } else {
+        add('High protein','ineligible', `${pctProt.toFixed(1)}% of energy < 20%`);
+      }
+    }
+
+    return results;
+  },
+
+  // Summary: only eligible claims
+  eligible(p) {
+    return this.evaluate(p).filter(r => r.status === 'eligible').map(r => r.claim);
+  },
+};
+
+
+// ════════════════════════════════════════════════════════════════════
+// SAMPLE DATA
+// ════════════════════════════════════════════════════════════════════
+const SAMPLE_PRODUCTS = [
+  // 🔴 HIGH RISK — fails multiple models
+  {id:1,name:'Chocolate Muesli Bar',category:'Cereals & Bars',energy:1720,totalFat:8,satFat:4.5,sugars:38,salt:0.8,protein:7.5,fibre:3,fvnl:5,fvl:5,npmType:'Food',hsrCat:'Category 2',nsCat:'General Foods',sales:280000},
+  {id:2,name:'Tomato Ketchup',category:'Sauces & Condiments',energy:410,totalFat:0.1,satFat:0.1,sugars:22,salt:2.1,protein:1.1,fibre:0.7,fvnl:60,fvl:60,npmType:'Food',hsrCat:'Category 2',nsCat:'General Foods',sales:520000},
+  {id:3,name:'Salted Caramel Popcorn',category:'Snacks',energy:2100,totalFat:28,satFat:14,sugars:18,salt:1.5,protein:5,fibre:4,fvnl:0,fvl:0,npmType:'Food',hsrCat:'Category 2',nsCat:'General Foods',sales:175000},
+  // 🟡 BORDERLINE — passes some, fails others
+  {id:4,name:'Whole Wheat Bread',category:'Bakery',energy:955,totalFat:3.5,satFat:0.6,sugars:4.2,salt:1.2,protein:9.2,fibre:6.5,fvnl:0,fvl:0,npmType:'Food',hsrCat:'Category 2',nsCat:'General Foods',sales:680000},
+  {id:5,name:'Orange Juice 100%',category:'Beverages',energy:180,totalFat:0.2,satFat:0,sugars:8.1,salt:0.01,protein:0.7,fibre:0.2,fvnl:100,fvl:100,npmType:'Drink',hsrCat:'Category 1',nsCat:'Beverages',sales:360000},
+  {id:6,name:'Cheddar Cheese Mature',category:'Dairy',energy:1720,totalFat:34,satFat:22,sugars:0.1,salt:1.7,protein:25,fibre:0,fvnl:0,fvl:0,isCheese:'Yes',npmType:'Food',hsrCat:'Category 2D',nsCat:'General Foods',sales:310000},
+  {id:7,name:'Peanut Butter Smooth',category:'Spreads',energy:2500,totalFat:50,satFat:9,sugars:6,salt:0.8,protein:25,fibre:6,fvnl:0,fvl:0,npmType:'Food',hsrCat:'Category 3D',nsCat:'Fats-Oils-Nuts-Seeds',sales:145000},
+  // 🟢 COMPLIANT — passes most models
+  {id:8,name:'Greek Yoghurt 0% Plain',category:'Dairy',energy:255,totalFat:0.2,satFat:0.1,sugars:4,salt:0.11,protein:10,fibre:0,fvnl:0,fvl:0,npmType:'Food',hsrCat:'Category 2D',nsCat:'General Foods',sales:420000},
+  {id:9,name:'Diet Cola (Sweetened)',category:'Beverages',energy:3,totalFat:0,satFat:0,sugars:0.1,salt:0.01,protein:0,fibre:0,fvnl:0,fvl:0,nns:'Present',npmType:'Drink',hsrCat:'Category 1',nsCat:'Beverages',sales:950000},
+  {id:10,name:'Extra Virgin Olive Oil',category:'Fats & Oils',energy:3760,totalFat:100,satFat:14,sugars:0,salt:0,protein:0,fibre:0,fvnl:0,fvl:0,npmType:'Food',hsrCat:'Category 3',nsCat:'Fats-Oils-Nuts-Seeds',sales:190000},
+  {id:11,name:'Ready Meal — Chicken Pasta',category:'Ready Meals',energy:680,totalFat:5,satFat:1.8,sugars:4.5,salt:1.1,protein:7,fibre:2.5,fvnl:10,fvl:10,npmType:'Food',hsrCat:'Category 2',nsCat:'General Foods',sales:220000},
+  {id:12,name:'Plain Water',category:'Beverages',energy:0,totalFat:0,satFat:0,sugars:0,salt:0,protein:0,fibre:0,fvnl:0,fvl:0,hsrAuto:'Plain water',npmType:'Drink',hsrCat:'Category 1',nsCat:'Beverages',sales:1200000},
+];
+
+// ════════════════════════════════════════════════════════════════════
+// ICON COMPONENT
+// ════════════════════════════════════════════════════════════════════
+const Icon = ({name}) => {
+  const icons = {
+    dashboard:'⬛',grid:'▦',heatmap:'▥',reform:'⟳',ai:'✦',upload:'↑',
+    products:'☰',filter:'≡',sort:'↕',plus:'+',close:'×',check:'✓',
+    warn:'⚠',info:'ℹ',arrow:'→',back:'←',down:'↓',search:'⌕',
+    star:'★',flag:'⚑',chart:'▦',bolt:'⚡',globe:'⊕',leaf:'◉',
+    refresh:'↺',export:'↗',edit:'✎',delete:'✕',save:'✓',copy:'⎘',
+  };
+  return <span style={{fontSize:'inherit'}}>{icons[name]||'•'}</span>;
+};
+
+// ════════════════════════════════════════════════════════════════════
+// SCORE BADGE
+// ════════════════════════════════════════════════════════════════════
+const ScoreBadge = ({value, model}) => {
+  if(!value||value==='error') return <span className="score-badge score-grey">N/A</span>;
+  let cls='score-grey';
+  if(model==='npm') cls=value==='Less Healthy'?'score-red':'score-green';
+  else if(model==='ns') cls=['A','B'].includes(value)?'score-green':value==='C'?'score-amber':'score-red';
+  else if(model==='hsr'){const n=parseFloat(value);cls=n>=4?'score-green':n>=3?'score-amber':'score-red';}
+  else if(model==='who'||model==='market') cls=value==='Pass'?'score-green':'score-red';
+  return <span className={`score-badge ${cls}`}>{value}</span>;
+};
+
+// ════════════════════════════════════════════════════════════════════
+// CHART COMPONENTS
+// ════════════════════════════════════════════════════════════════════
+const BarChart = ({data, title}) => {
+  const ref = useRef();
+  useEffect(()=>{
+    if(!ref.current||!data) return;
+    const ctx=ref.current.getContext('2d');
+    const existing=Chart.getChart(ref.current);
+    if(existing) existing.destroy();
+    new Chart(ctx,{
+      type:'bar',
+      data:{
+        labels:data.map(d=>d.label),
+        datasets:[{
+          data:data.map(d=>d.value),
+          backgroundColor:data.map(d=>d.color||'rgba(76,175,111,0.6)'),
+          borderColor:data.map(d=>d.color?.replace('0.6','1')||'rgba(76,175,111,1)'),
+          borderWidth:1,borderRadius:4,
+        }]
+      },
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{
+          backgroundColor:'#FDFEFE',borderColor:'#D8E4D9',borderWidth:1,
+          titleColor:'#0F1A0F',bodyColor:'#637060',
+          callbacks:{label:c=>`${c.parsed.y.toFixed(0)}%`}
+        }},
+        scales:{
+          x:{grid:{color:'rgba(42,50,38,0.5)'},ticks:{color:'#637060',font:{size:10}}},
+          y:{grid:{color:'rgba(42,50,38,0.5)'},ticks:{color:'#637060',font:{size:10}},min:0,max:100,
+             callback:v=>`${v}%`}
+        }
+      }
+    });
+  },[data]);
+  return <div className="chart-wrap"><canvas ref={ref}/></div>;
+};
+
+const DonutChart = ({value, label, color='#4CAF6F'}) => {
+  const ref = useRef();
+  useEffect(()=>{
+    if(!ref.current) return;
+    const existing=Chart.getChart(ref.current);
+    if(existing) existing.destroy();
+    new Chart(ref.current,{
+      type:'doughnut',
+      data:{datasets:[{data:[value,100-value],backgroundColor:[color,'rgba(210,224,212,0.5)'],borderWidth:0,borderRadius:2}]},
+      options:{responsive:true,maintainAspectRatio:false,cutout:'72%',plugins:{legend:{display:false},tooltip:{enabled:false}}}
+    });
+  },[value,color]);
+  return (
+    <div style={{position:'relative',height:120,width:120,margin:'0 auto'}}>
+      <canvas ref={ref}/>
+      <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
+        <span style={{fontFamily:'var(--mono)',fontSize:20,fontWeight:700,color:'var(--text)'}}>{value.toFixed(0)}%</span>
+        <span style={{fontSize:10,color:'var(--text3)'}}>{label}</span>
+      </div>
+    </div>
+  );
+};
+
+// ════════════════════════════════════════════════════════════════════
+// PAGES
+// ════════════════════════════════════════════════════════════════════
+
+// ── DASHBOARD ──────────────────────────────────────────────────────
+const Dashboard = ({products, scored}) => {
+  if(!products.length) return (
+    <div className="empty">
+      <div className="empty-icon">⬛</div>
+      <h3>No products yet</h3>
+      <p>Add products to see your portfolio dashboard</p>
+    </div>
+  );
+
+  const total=products.length;
+  const totalSales=products.reduce((s,p)=>s+(p.sales||0),0);
+
+  // Compliance rates per model
+  const npmPass=scored.filter(s=>s.npm&&!s.npm.error&&!s.npm.lessHealthy).length;
+  const nsPass=scored.filter(s=>s.ns&&['A','B'].includes(s.ns.grade)).length;
+  const hsrPass=scored.filter(s=>s.hsr&&(s.hsr.stars||0)>=3.5).length;
+  const whoPass=scored.filter(s=>s.who&&s.who.compliant).length;
+
+  // Sales-weighted
+  const npmSales=scored.filter((s,i)=>s.npm&&!s.npm.error&&!s.npm.lessHealthy).reduce((sum,s,i)=>{
+    const p=products.find(p=>p.id===s.id);return sum+(p?.sales||0);},0);
+  const riskSales=totalSales-npmSales;
+
+  // Top risk nutrients (NPM A-points)
+  const nutrientTotals={Energy:0,Sugars:0,'Sat Fat':0,Sodium:0};
+  scored.forEach(s=>{
+    if(s.npm&&!s.npm.error){
+      nutrientTotals.Energy+=s.npm.a1||0;
+      nutrientTotals.Sugars+=s.npm.a2||0;
+      nutrientTotals['Sat Fat']+=s.npm.a3||0;
+      nutrientTotals.Sodium+=s.npm.a4||0;
+    }
+  });
+  const maxNut=Math.max(...Object.values(nutrientTotals));
+  const nutrientBars=Object.entries(nutrientTotals).map(([k,v])=>({
+    label:k,value:(v/(total*10)*100).toFixed(0),
+    color:v/maxNut>0.7?'rgba(232,85,85,0.7)':v/maxNut>0.4?'rgba(232,164,74,0.7)':'rgba(76,175,111,0.7)'
+  }));
+
+  // Category analysis
+  const cats={};
+  scored.forEach((s,i)=>{
+    const cat=products[i]?.category||'Other';
+    if(!cats[cat])cats[cat]={total:0,npmPass:0,nsPass:0};
+    cats[cat].total++;
+    if(s.npm&&!s.npm.error&&!s.npm.lessHealthy)cats[cat].npmPass++;
+    if(s.ns&&['A','B'].includes(s.ns.grade))cats[cat].nsPass++;
+  });
+
+  const mktData=['UK','France','Australia','WHO'].map(m=>({
+    label:m,
+    value:(scored.filter(s=>s.markets&&s.markets[m]==='Pass').length/total*100)
+  }));
+
+  return (
+    <div className="fade-in">
+      <div className="kpi-grid">
+        <div className="kpi">
+          <div className="kpi-label">Products</div>
+          <div className="kpi-val">{total}</div>
+          <div className="kpi-sub">{Object.keys(cats).length} categories</div>
+        </div>
+        <div className="kpi">
+          <div className="kpi-label">UK NPM Compliant</div>
+          <div className={`kpi-val ${npmPass/total>0.6?'green':npmPass/total>0.3?'amber':'red'}`}>{(npmPass/total*100).toFixed(0)}%</div>
+          <div className="kpi-sub">{npmPass}/{total} products</div>
+        </div>
+        <div className="kpi">
+          <div className="kpi-label">Nutri-Score A/B</div>
+          <div className={`kpi-val ${nsPass/total>0.6?'green':nsPass/total>0.3?'amber':'red'}`}>{(nsPass/total*100).toFixed(0)}%</div>
+          <div className="kpi-sub">{nsPass}/{total} products</div>
+        </div>
+        <div className="kpi">
+          <div className="kpi-label">WHO Compliant</div>
+          <div className={`kpi-val ${whoPass/total>0.6?'green':whoPass/total>0.3?'amber':'red'}`}>{(whoPass/total*100).toFixed(0)}%</div>
+          <div className="kpi-sub">{whoPass}/{total} products</div>
+        </div>
+      </div>
+
+      <div className="grid-2" style={{marginBottom:16}}>
+        <div className="card fade-in-2">
+          <div className="card-header"><span className="card-title">Market Compliance Rate</span></div>
+          <div className="card-body">
+            <BarChart data={mktData.map(d=>({label:d.label,value:d.value,color:d.value>60?'rgba(76,175,111,0.7)':d.value>30?'rgba(232,164,74,0.7)':'rgba(232,85,85,0.7)'}))}/>
+          </div>
+        </div>
+        <div className="card fade-in-2">
+          <div className="card-header"><span className="card-title">Score Distribution</span></div>
+          <div className="card-body" style={{display:'flex',justifyContent:'space-around',alignItems:'center'}}>
+            <DonutChart value={npmPass/total*100} label="NPM" color="#4CAF6F"/>
+            <DonutChart value={nsPass/total*100} label="NS" color="#4CAF6F"/>
+            <DonutChart value={hsrPass/total*100} label="HSR" color="#4CAF6F"/>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid-2">
+        <div className="card fade-in-3">
+          <div className="card-header"><span className="card-title">Nutrient Risk Drivers</span></div>
+          <div className="card-body">
+            {nutrientBars.sort((a,b)=>b.value-a.value).map(n=>(
+              <div key={n.label} style={{marginBottom:10}}>
+                <div style={{display:'flex',justifyContent:'space-between',fontSize:12,marginBottom:4}}>
+                  <span style={{color:'var(--text2)'}}>{n.label}</span>
+                  <span style={{color:'var(--text)',fontFamily:'var(--mono)',fontWeight:600}}>{n.value}%</span>
+                </div>
+                <div className="progress-bar">
+                  <div className="progress-fill" style={{width:`${n.value}%`,background:n.color.replace('0.7','1')}}/>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="card fade-in-3">
+          <div className="card-header"><span className="card-title">Category Performance</span></div>
+          <div className="card-body table-container">
+            <table>
+              <thead><tr><th>Category</th><th>Products</th><th>NPM %</th><th>NS %</th></tr></thead>
+              <tbody>
+                {Object.entries(cats).sort((a,b)=>b[1].total-a[1].total).map(([cat,d])=>(
+                  <tr key={cat}>
+                    <td style={{color:'var(--text)'}}>{cat}</td>
+                    <td style={{fontFamily:'var(--mono)'}}>{d.total}</td>
+                    <td><ScoreBadge value={d.npmPass===d.total?'Pass':'Fail'} model="market"/></td>
+                    <td><ScoreBadge value={d.nsPass===d.total?'Pass':'Fail'} model="market"/></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {totalSales>0&&(
+            <div style={{padding:'12px 0 0',borderTop:'1px solid var(--border)',marginTop:12}}>
+              <div style={{fontSize:11,color:'var(--text3)',marginBottom:6}}>REVENUE AT RISK (NPM)</div>
+              <div style={{fontSize:18,fontFamily:'var(--mono)',fontWeight:700,color:'var(--red)'}}>
+                {(riskSales/totalSales*100).toFixed(0)}%
+                <span style={{fontSize:11,color:'var(--text3)',fontFamily:'var(--sans)',marginLeft:8}}>of revenue from non-compliant SKUs</span>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── PRODUCTS PAGE ──────────────────────────────────────────────────
+const Products = ({products, setProducts, isSample, setSample=()=>{}}) => {
+  const [view, setView] = useState('list'); // 'list' | 'add' | 'upload'
+  const [search, setSearch] = useState('');
+  const [filterCat, setFilterCat] = useState('All');
+  const [sort, setSort] = useState({key:'name',dir:1});
+  const [editId, setEditId] = useState(null);
+  const [dragging, setDragging] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState(null); // null | 'loading' | {ok, errors}
+  const [previewRows, setPreviewRows] = useState([]);
+  const fileRef = useRef();
+
+  // ── Form state (add/edit) ──────────────────────────────────────
+  const emptyForm = {
+    name:'', brand:'', category:'', subcategory:'', sku:'', market:'',
+    batchCode:'', launchYear:'', notes:'',
+    npmType:'Food', hsrCat:'Category 2', hsrAuto:'No',
+    nsCat:'General Foods', isCheese:'No', isRedMeat:'No', nns:'Absent',
+    energy:'', totalFat:'', satFat:'', sugars:'', salt:'', sodium:'',
+    protein:'', fibre:'', fvnl:'', fvl:'', sales:'',
+  };
+  const [form, setForm] = useState(emptyForm);
+  const [formErrors, setFormErrors] = useState({});
+  const [formSaved, setFormSaved] = useState(false);
+  const sf = (k) => (v) => setForm(f=>({...f,[k]:typeof v==='object'?v.target.value:v}));
+
+  // ── Categories from existing data ─────────────────────────────
+  const existingCats = useMemo(()=>[...new Set(products.map(p=>p.category).filter(Boolean))],[products]);
+
+  // ── Sorted / filtered list ────────────────────────────────────
+  const filtered = useMemo(()=>{
+    return [...products]
+      .filter(p=>{
+        const q = search.toLowerCase();
+        const matchSearch = !q || p.name?.toLowerCase().includes(q) ||
+          p.brand?.toLowerCase().includes(q) || p.category?.toLowerCase().includes(q) ||
+          p.sku?.toLowerCase().includes(q);
+        const matchCat = filterCat==='All' || p.category===filterCat;
+        return matchSearch && matchCat;
+      })
+      .sort((a,b)=>{
+        const av=a[sort.key], bv=b[sort.key];
+        if(typeof av==='string') return sort.dir*(av||'').localeCompare(bv||'');
+        return sort.dir*((av||0)-(bv||0));
+      });
+  },[products,search,filterCat,sort]);
+
+  const scored = useMemo(()=>filtered.map(p=>({...Engine.calcAll(p),id:p.id})),[filtered]);
+  const categories = useMemo(()=>['All',...existingCats],[existingCats]);
+
+  // ── Form validation ───────────────────────────────────────────
+  const validate = (f) => {
+    const errs = {};
+    if(!f.name?.trim()) errs.name = 'Required';
+    if(f.energy!=='' && (isNaN(+f.energy)||+f.energy<0)) errs.energy = 'Must be ≥ 0';
+    if(f.sugars!=='' && (isNaN(+f.sugars)||+f.sugars<0)) errs.sugars = 'Must be ≥ 0';
+    if(f.satFat!=='' && f.totalFat!=='' && +f.satFat>+f.totalFat) errs.satFat = 'Cannot exceed total fat';
+    if(f.fvnl!=='' && (+f.fvnl<0||+f.fvnl>100)) errs.fvnl = '0–100%';
+    return errs;
+  };
+
+  const saveProduct = () => {
+    const errs = validate(form);
+    setFormErrors(errs);
+    if(Object.keys(errs).length) return;
+    const p = {
+      id: editId || Date.now(),
+      name: form.name.trim(),
+      brand: form.brand.trim(),
+      category: form.category.trim() || 'Uncategorised',
+      subcategory: form.subcategory.trim(),
+      sku: form.sku.trim(),
+      market: form.market.trim(),
+      batchCode: form.batchCode.trim(),
+      launchYear: form.launchYear,
+      notes: form.notes.trim(),
+      npmType: form.npmType,
+      hsrCat: form.hsrCat,
+      hsrAuto: form.hsrAuto,
+      nsCat: form.nsCat,
+      isCheese: form.isCheese,
+      isRedMeat: form.isRedMeat,
+      nns: form.nns,
+      energy:   form.energy===''  ? null : +form.energy,
+      totalFat: form.totalFat==='' ? null : +form.totalFat,
+      satFat:   form.satFat===''  ? null : +form.satFat,
+      sugars:   form.sugars===''  ? null : +form.sugars,
+      salt:     form.salt===''    ? null : +form.salt,
+      sodium:   form.sodium===''  ? null : +form.sodium,
+      protein:  form.protein==='' ? null : +form.protein,
+      fibre:    form.fibre===''   ? null : +form.fibre,
+      fvnl:     form.fvnl===''    ? null : +form.fvnl,
+      fvl:      form.fvl===''     ? null : +form.fvl || (form.fvnl===''?null:+form.fvnl),
+      sales:    form.sales===''   ? null : +form.sales,
+    };
+    setProducts(prev => editId ? prev.map(x=>x.id===editId?p:x) : [...prev,p]);
+    setFormSaved(true);
+    setTimeout(()=>setFormSaved(false),2500);
+    if(!editId){ setForm(emptyForm); setFormErrors({}); }
+    else { setEditId(null); setView('list'); }
+  };
+
+  const openEdit = (p) => {
+    setForm({
+      name:p.name||'', brand:p.brand||'', category:p.category||'',
+      subcategory:p.subcategory||'', sku:p.sku||'', market:p.market||'',
+      batchCode:p.batchCode||'', launchYear:p.launchYear||'', notes:p.notes||'',
+      npmType:p.npmType||'Food', hsrCat:p.hsrCat||'Category 2', hsrAuto:p.hsrAuto||'No',
+      nsCat:p.nsCat||'General Foods', isCheese:p.isCheese||'No',
+      isRedMeat:p.isRedMeat||'No', nns:p.nns||'Absent',
+      energy:  p.energy??'', totalFat:p.totalFat??'', satFat:p.satFat??'',
+      sugars:  p.sugars??'', salt:p.salt??'', sodium:p.sodium??'',
+      protein: p.protein??'', fibre:p.fibre??'',
+      fvnl:    p.fvnl??'', fvl:p.fvl??'', sales:p.sales??'',
+    });
+    setEditId(p.id);
+    setFormErrors({});
+    setView('add');
+  };
+
+  const deleteProduct = (id) => {
+    if(window.confirm('Delete this product?')) setProducts(prev=>prev.filter(p=>p.id!==id));
+  };
+
+  // ── Excel/CSV import ──────────────────────────────────────────
+  const FIELD_MAP = {
+    'Product Name':['name','product name','product','nombre'],
+    'brand':['brand','marca'],
+    'category':['category','categoria','cat','type'],
+    'energy':['energy','energy (kj)','energia','kj','energia (kj)','energía'],
+    'totalFat':['total fat','fat','grasa total','fat (g)','total fat (g)'],
+    'satFat':['saturated fat','sat fat','saturated fat (g)','grasa saturada','sat fat (g)'],
+    'sugars':['total sugars','sugars','sugar','azúcar','azucares','sugars (g)','total sugars (g)'],
+    'salt':['salt','sal','salt (g)'],
+    'sodium':['sodium','sodio','sodium (mg)'],
+    'protein':['protein','proteína','proteina','protein (g)'],
+    'fibre':['fibre','fiber','fibra','fibre (g)','fiber (g)'],
+    'fvnl':['fvnl','fvnl (%)','fruit veg','% fvnl','fvns','fvns (%)'],
+    'sales':['sales','ventas','revenue','sales (£)','sales (€)'],
+    'npmType':['npm type','product type','type','tipo'],
+    'hsrCat':['hsr category','hsr cat','hsr'],
+    'nsCat':['ns category','nutri-score category','nutriscore category'],
+    'isCheese':['is cheese','cheese','queso'],
+    'isRedMeat':['is red meat','red meat','carne roja'],
+    'nns':['nns','sweeteners','edulcorantes'],
+  };
+
+  const mapHeader = (header) => {
+    const h = header.toLowerCase().trim();
+    for(const [field, aliases] of Object.entries(FIELD_MAP)){
+      if(aliases.some(a=>h===a||h.includes(a))) return field;
+    }
+    return null;
+  };
+
+  const processFile = (file) => {
+    setUploadStatus('loading');
+    setPreviewRows([]);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        let rows = [];
+        const ext = file.name.split('.').pop().toLowerCase();
+
+        if(ext==='csv') {
+          // Parse CSV manually
+          const text = new TextDecoder().decode(e.target.result);
+          const lines = text.split(/\r?\n/).filter(l=>l.trim());
+          const headers = lines[0].split(',').map(h=>h.replace(/^"|"$/g,'').trim());
+          rows = lines.slice(1).map(line=>{
+            const vals = line.split(',').map(v=>v.replace(/^"|"$/g,'').trim());
+            return Object.fromEntries(headers.map((h,i)=>[h,vals[i]||'']));
+          });
+        } else {
+          const wb = XLSX.read(e.target.result, {type:'array'});
+          const ws = wb.Sheets[wb.SheetNames[0]];
+          rows = XLSX.utils.sheet_to_json(ws, {defval:''});
+        }
+
+        if(!rows.length) throw new Error('No data found');
+
+        // Map headers
+        const headers = Object.keys(rows[0]);
+        const headerMap = {};
+        headers.forEach(h=>{ const f=mapHeader(h); if(f) headerMap[h]=f; });
+
+        const mapped = rows
+          .filter(r=>Object.values(r).some(v=>v!==''))
+          .map((r,i)=>{
+            const p = {...emptyForm};
+            Object.entries(headerMap).forEach(([rawH, field])=>{
+              p[field] = r[rawH];
+            });
+            // Fallbacks for name
+            if(!p.name) p.name = r['Product Name']||r['name']||r['producto']||`Product ${i+1}`;
+            const numFields = ['energy','totalFat','satFat','sugars','salt','sodium','protein','fibre','fvnl','fvl','sales'];
+            numFields.forEach(f=>{ p[f] = p[f]===''||p[f]===undefined ? null : (isNaN(+p[f])?null:+p[f]); });
+            p.fvl = p.fvl || p.fvnl;
+            p.npmType = p.npmType||'Food';
+            p.hsrCat = p.hsrCat||'Category 2';
+            p.hsrAuto = p.hsrAuto||'No';
+            p.nsCat = p.nsCat||'General Foods';
+            p.isCheese = p.isCheese||'No';
+            p.isRedMeat = p.isRedMeat||'No';
+            p.nns = p.nns||'Absent';
+            p.id = Date.now()+i;
+            return p;
+          });
+
+        setPreviewRows(mapped);
+        setUploadStatus({ok:mapped.length, skipped:rows.length-mapped.length, headers:Object.values(headerMap)});
+      } catch(err) {
+        setUploadStatus({error:err.message});
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
+  const confirmImport = () => {
+    setProducts(prev=>[...prev,...previewRows]);
+    setPreviewRows([]);
+    setUploadStatus(null);
+    setView('list');
+  };
+
+  // ── Field component helpers ───────────────────────────────────
+  const Field = ({k, label, required, type='text', hint, options, placeholder}) => (
+    <div className="field">
+      <label className="label" style={{display:'flex',justifyContent:'space-between'}}>
+        <span>{label}{required&&<span style={{color:'var(--red)',marginLeft:2}}>*</span>}</span>
+        {hint&&<span style={{fontSize:10,color:'var(--text3)',fontWeight:400}}>{hint}</span>}
+      </label>
+      {options ? (
+        <select className="select" style={{width:'100%'}} value={form[k]||''} onChange={sf(k)}>
+          {options.map(o=><option key={o.v||o} value={o.v||o}>{o.l||o}</option>)}
+        </select>
+      ) : (
+        <input
+          type={type} className="input"
+          value={form[k]!==undefined?form[k]:''}
+          onChange={sf(k)}
+          placeholder={placeholder||''}
+          min={type==='number'?0:undefined}
+          step={type==='number'?'any':undefined}
+          style={formErrors[k]?{borderColor:'var(--red)'}:{}}
+        />
+      )}
+      {formErrors[k]&&<div style={{fontSize:11,color:'var(--red)',marginTop:3}}>{formErrors[k]}</div>}
+    </div>
+  );
+
+  // ── Sort helper ───────────────────────────────────────────────
+  const SortTh = ({k, label}) => (
+    <th onClick={()=>setSort(s=>({key:k,dir:s.key===k?-s.dir:1}))} style={{cursor:'pointer',userSelect:'none'}}>
+      {label}
+      <span style={{marginLeft:4,opacity:.5,fontSize:9}}>
+        {sort.key===k?(sort.dir>0?'▲':'▼'):'⇅'}
+      </span>
+    </th>
+  );
+
+  // Live calc preview for the add form
+  const liveCalc = useMemo(()=>{
+    if(!form.name) return null;
+    const p = {
+      ...form,
+      energy:+form.energy||0, totalFat:+form.totalFat||0, satFat:+form.satFat||0,
+      sugars:+form.sugars||0, salt:+form.salt||0, sodium:form.sodium?+form.sodium:null,
+      protein:+form.protein||0, fibre:+form.fibre||0, fvnl:+form.fvnl||0,
+      fvl:+form.fvl||+form.fvnl||0,
+    };
+    return Engine.calcAll(p);
+  },[form]);
+
+  // ════════════════════════════════════════════════════════════════
+  // RENDER
+  // ════════════════════════════════════════════════════════════════
+  return (
+    <div className="fade-in">
+
+      {/* ── Tab bar ── */}
+      <div style={{display:'flex',gap:4,marginBottom:20,background:'var(--bg3)',padding:4,borderRadius:10,width:'fit-content',border:'1px solid var(--border)'}}>
+        {[
+          {id:'list', icon:'☰', label:`Products${products.length?` (${products.length})`:''}` },
+          {id:'add',  icon:'✚', label:editId?'Edit product':'Add product'},
+          {id:'upload',icon:'↑', label:'Import Excel / CSV'},
+        ].map(tab=>(
+          <button key={tab.id}
+            onClick={()=>{ setView(tab.id); if(tab.id==='add'&&!editId){setForm(emptyForm);setFormErrors({});} }}
+            style={{
+              padding:'8px 18px',border:'none',borderRadius:8,cursor:'pointer',
+              fontSize:13,fontWeight:600,transition:'all .15s',
+              fontFamily:'var(--sans)',display:'flex',alignItems:'center',gap:6,
+              background: view===tab.id?'var(--card)':'transparent',
+              color: view===tab.id?'var(--sage)':'var(--text3)',
+              boxShadow: view===tab.id?'var(--shadow)':'none',
+            }}>
+            <span>{tab.icon}</span><span>{tab.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* ══════════════════════════════════════════════════════════
+          LIST VIEW
+      ══════════════════════════════════════════════════════════ */}
+      {view==='list' && (
+        <>
+          {isSample&&(
+            <div style={{background:'rgba(58,107,74,.07)',border:'1px solid rgba(58,107,74,.2)',borderRadius:'var(--r-lg)',padding:'12px 18px',marginBottom:14,display:'flex',alignItems:'center',gap:10}}>
+              <span style={{fontSize:16}}>⚡</span>
+              <div style={{flex:1}}>
+                <span style={{fontSize:13,fontWeight:700,color:'var(--sage)'}}>Sample portfolio loaded · </span>
+                <span style={{fontSize:12,color:'var(--text3)'}}>12 products pre-scored. Add yours or import an Excel.</span>
+              </div>
+              <button className="btn btn-ghost btn-sm" onClick={()=>setProducts([])}>Clear</button>
+            </div>
+          )}
+
+          {/* Filters */}
+          <div style={{display:'flex',gap:10,marginBottom:12,flexWrap:'wrap',alignItems:'center'}}>
+            <input className="input" placeholder="⌕  Search by name, brand, SKU..." value={search} onChange={e=>setSearch(e.target.value)} style={{maxWidth:300}}/>
+            <div className="chip-group">
+              {categories.map(c=>(
+                <button key={c} className={`chip${filterCat===c?' active':''}`} onClick={()=>setFilterCat(c)}>{c}</button>
+              ))}
+            </div>
+            <span style={{marginLeft:'auto',fontSize:12,color:'var(--text3)'}}>{filtered.length} product{filtered.length!==1?'s':''}</span>
+          </div>
+
+          {/* Table */}
+          {products.length===0 ? (
+            <div className="empty" style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:'var(--r-xl)'}}>
+              <div className="empty-icon">📦</div>
+              <h3>No products yet</h3>
+              <p>Add your first product manually or import an Excel file</p>
+              <div style={{display:'flex',gap:8,justifyContent:'center',marginTop:16}}>
+                <button className="btn btn-primary" onClick={()=>setView('add')}>✚ Add product</button>
+                <button className="btn btn-ghost" onClick={()=>setView('upload')}>↑ Import Excel</button>
+                <button className="btn btn-ghost" onClick={()=>{setProducts(SAMPLE_PRODUCTS);setSample(true);}}>⚡ Load samples</button>
+              </div>
+            </div>
+          ) : (
+            <div className="card">
+              <div style={{overflowX:'auto'}}>
+                <div className="table-container">
+                  <table>
+                    <thead>
+                      <tr>
+                        <SortTh k="name" label="Product"/>
+                        <SortTh k="brand" label="Brand"/>
+                        <SortTh k="category" label="Category"/>
+                        <SortTh k="energy" label="kJ"/>
+                        <SortTh k="sugars" label="Sugars"/>
+                        <SortTh k="satFat" label="Sat Fat"/>
+                        <SortTh k="salt" label="Salt"/>
+                        <SortTh k="protein" label="Protein"/>
+                        <SortTh k="fibre" label="Fibre"/>
+                        <th>NPM</th>
+                        <th>NS</th>
+                        <th>HSR</th>
+                        <th>WHO</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filtered.map((p,i)=>{
+                        const s=scored[i];
+                        return (
+                          <tr key={p.id}>
+                            <td style={{fontWeight:600,color:'var(--text)',maxWidth:180,overflow:'hidden',textOverflow:'ellipsis'}}>
+                              {p.name}
+                              {p.sku&&<span style={{fontSize:10,color:'var(--text3)',display:'block'}}>{p.sku}</span>}
+                            </td>
+                            <td style={{color:'var(--text3)',fontSize:12}}>{p.brand||'—'}</td>
+                            <td><span className="tag tag-grey" style={{fontSize:10}}>{p.category}</span></td>
+                            {['energy','sugars','satFat','salt','protein','fibre'].map(k=>(
+                              <td key={k} style={{fontFamily:'var(--mono)',fontSize:12,textAlign:'right',paddingRight:18}}>
+                                {p[k]!=null?p[k]:'—'}
+                              </td>
+                            ))}
+                            <td><ScoreBadge value={s?.npm?.result} model="npm"/></td>
+                            <td><ScoreBadge value={s?.ns?.grade} model="ns"/></td>
+                            <td><ScoreBadge value={s?.hsr?.result} model="hsr"/></td>
+                            <td><ScoreBadge value={s?.who?.result} model="who"/></td>
+                            <td>
+                              <div style={{display:'flex',gap:4}}>
+                                <button className="btn btn-ghost btn-sm" onClick={()=>openEdit(p)} title="Edit">✎</button>
+                                <button className="btn btn-danger btn-sm" onClick={()=>deleteProduct(p.id)} title="Delete">✕</button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              {/* Footer */}
+              <div style={{padding:'10px 18px',borderTop:'1px solid var(--border)',display:'flex',gap:12,alignItems:'center',background:'var(--bg3)'}}>
+                <span style={{fontSize:12,color:'var(--text3)'}}>{products.length} products total</span>
+                <button className="btn btn-ghost btn-sm" style={{marginLeft:'auto'}} onClick={()=>{
+                  const csv=['Product Name,Brand,Category,Energy (kJ),Total Fat (g),Sat Fat (g),Total Sugars (g),Salt (g),Protein (g),Fibre (g),FVNL (%),Sales,NPM Type,HSR Category,NS Category']
+                    .concat(products.map(p=>[p.name,p.brand||'',p.category||'',p.energy??'',p.totalFat??'',p.satFat??'',p.sugars??'',p.salt??'',p.protein??'',p.fibre??'',p.fvnl??'',p.sales??'',p.npmType,p.hsrCat,p.nsCat].join(','))).join('\n');
+                  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='nutrisignal-products.csv';a.click();
+                }}>↗ Export CSV</button>
+                <button className="btn btn-danger btn-sm" onClick={()=>{if(window.confirm('Clear all products?')){setProducts([]);setSample(false);}}}>Clear all</button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════
+          ADD / EDIT FORM
+      ══════════════════════════════════════════════════════════ */}
+      {view==='add' && (
+        <div style={{display:'grid',gridTemplateColumns:'1fr 340px',gap:20,alignItems:'start'}}>
+
+          {/* Left: form */}
+          <div style={{display:'flex',flexDirection:'column',gap:16}}>
+
+            {/* Section: Product info */}
+            <div className="card">
+              <div className="card-header">
+                <span className="card-title">📦 Product Information</span>
+              </div>
+              <div className="card-body">
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+                  <div style={{gridColumn:'1/-1'}}>
+                    <Field k="name" label="Product Name" required placeholder="e.g. Chocolate Muesli Bar"/>
+                  </div>
+                  <Field k="brand" label="Brand" placeholder="e.g. Nature's Best"/>
+                  <Field k="category" label="Category" placeholder="e.g. Cereals, Dairy, Snacks"/>
+                  <Field k="subcategory" label="Subcategory" placeholder="e.g. Cereal Bars"/>
+                  <Field k="sku" label="SKU / Product Code" placeholder="e.g. NB-CMB-45G"/>
+                  <Field k="launchYear" label="Launch Year" type="number" placeholder="e.g. 2023"/>
+                  <Field k="market" label="Target Market(s)" placeholder="e.g. UK, France, AUS"/>
+                  <Field k="sales" label="Annual Sales (£)" type="number" hint="Optional — enables revenue analysis" placeholder="e.g. 250000"/>
+                  <div style={{gridColumn:'1/-1'}}>
+                    <Field k="notes" label="Notes / Assumptions" placeholder="Any processing notes, e.g. 'values as sold, not as prepared'"/>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Section: Nutrients */}
+            <div className="card">
+              <div className="card-header">
+                <span className="card-title">🔬 Nutritional Values <span style={{fontSize:11,fontWeight:400,color:'var(--text3)'}}>per 100g or 100mL</span></span>
+              </div>
+              <div className="card-body">
+                <div style={{background:'rgba(58,107,74,.06)',border:'1px solid rgba(58,107,74,.15)',borderRadius:'var(--r)',padding:'10px 14px',marginBottom:14,fontSize:12,color:'var(--text3)',lineHeight:1.6}}>
+                  Enter values per 100g (solids) or 100mL (liquids). Salt and Sodium — enter one or both; if both are provided the system checks consistency automatically (Sodium mg = Salt g × 400).
+                </div>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12}}>
+                  <Field k="energy"   label="Energy (kJ)" type="number" required placeholder="e.g. 1720"/>
+                  <Field k="totalFat" label="Total Fat (g)" type="number" placeholder="e.g. 8.5"/>
+                  <Field k="satFat"   label="Saturated Fat (g)" type="number" required placeholder="e.g. 4.5"/>
+                  <Field k="sugars"   label="Total Sugars (g)" type="number" required placeholder="e.g. 38"/>
+                  <Field k="salt"     label="Salt (g)" type="number" placeholder="e.g. 0.8"/>
+                  <Field k="sodium"   label="Sodium (mg)" type="number" hint="or derived from salt" placeholder="auto if salt entered"/>
+                  <Field k="protein"  label="Protein (g)" type="number" required placeholder="e.g. 7.5"/>
+                  <Field k="fibre"    label="Fibre AOAC (g)" type="number" required placeholder="e.g. 3.0"/>
+                  <Field k="fvnl"     label="FVNL % (NPM + HSR)" type="number" hint="Fruit/Veg/Nuts/Legumes" placeholder="0–100"/>
+                  <Field k="fvl"      label="FVL % (Nutri-Score)" type="number" hint="Fruit/Veg/Legumes" placeholder="0–100 (or same as FVNL)"/>
+                </div>
+              </div>
+            </div>
+
+            {/* Section: Model settings */}
+            <div className="card">
+              <div className="card-header">
+                <span className="card-title">⚙ Model Settings</span>
+              </div>
+              <div className="card-body">
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12}}>
+                  <Field k="npmType" label="UK NPM — Type" options={['Food','Drink']}/>
+                  <Field k="hsrCat" label="HSR — Category" options={[
+                    {v:'Category 1',  l:'Cat 1 — Non-dairy beverages'},
+                    {v:'Category 1D', l:'Cat 1D — Dairy beverages'},
+                    {v:'Category 2',  l:'Cat 2 — General foods'},
+                    {v:'Category 2D', l:'Cat 2D — Dairy foods'},
+                    {v:'Category 3',  l:'Cat 3 — Oils / Spreads'},
+                    {v:'Category 3D', l:'Cat 3D — Nuts / Seeds'},
+                  ]}/>
+                  <Field k="hsrAuto" label="HSR — Auto rating" options={[
+                    {v:'No',l:'No (calculate)'},
+                    {v:'Plain water',l:'Plain water (5★)'},
+                    {v:'Unsweetened flavoured water',l:'Unsw. water (4.5★)'},
+                    {v:'Eligible F&V',l:'Eligible F&V (5★)'},
+                  ]}/>
+                  <Field k="nsCat" label="Nutri-Score — Category" options={[
+                    {v:'General Foods',l:'General Foods'},
+                    {v:'Beverages',l:'Beverages'},
+                    {v:'Fats-Oils-Nuts-Seeds',l:'Fats / Oils / Nuts / Seeds'},
+                  ]}/>
+                  <Field k="isCheese"  label="Is Cheese?" options={['No','Yes']}/>
+                  <Field k="isRedMeat" label="Is Red Meat?" options={['No','Yes']}/>
+                  <Field k="nns" label="Non-Nutritive Sweeteners" hint="Beverages only" options={[
+                    {v:'Absent',l:'Absent'},
+                    {v:'Present',l:'Present (+4 NS pts)'},
+                  ]}/>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Right: live preview */}
+          <div style={{position:'sticky',top:20,display:'flex',flexDirection:'column',gap:12}}>
+
+            {/* Save button */}
+            <div style={{display:'flex',gap:8}}>
+              <button className="btn btn-primary" onClick={saveProduct} style={{flex:1,justifyContent:'center',fontSize:14}}>
+                {editId ? '✓ Save changes' : '✚ Add to database'}
+              </button>
+              {editId&&<button className="btn btn-ghost" onClick={()=>{setEditId(null);setForm(emptyForm);setFormErrors({});setView('list');}}>Cancel</button>}
+            </div>
+
+            {formSaved&&(
+              <div style={{background:'rgba(30,122,69,.12)',border:'1px solid rgba(30,122,69,.3)',borderRadius:'var(--r)',padding:'10px 14px',fontSize:13,color:'var(--green)',textAlign:'center',fontWeight:600}}>
+                ✓ Product saved!
+              </div>
+            )}
+
+            {/* Live score preview */}
+            <div className="card">
+              <div className="card-header"><span className="card-title">Live score preview</span></div>
+              <div className="card-body" style={{padding:'14px 16px'}}>
+                {!form.name ? (
+                  <div style={{textAlign:'center',color:'var(--text3)',fontSize:13,padding:'12px 0'}}>
+                    Enter a product name and nutrients to see scores
+                  </div>
+                ) : (
+                  <>
+                    <div style={{fontWeight:700,fontSize:14,color:'var(--text)',marginBottom:12,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                      {form.name||'—'}
+                    </div>
+                    {[
+                      {label:'UK NPM',     value:liveCalc?.npm?.result,    score:liveCalc?.npm?.score!=null?`Score: ${liveCalc.npm.score}`:'', model:'npm'},
+                      {label:'Nutri-Score',value:liveCalc?.ns?.grade,      score:liveCalc?.ns?.score!=null?`Score: ${liveCalc.ns.score}`:'',  model:'ns'},
+                      {label:'HSR v9',     value:liveCalc?.hsr?.result,    score:liveCalc?.hsr?.score!=null?`Score: ${liveCalc.hsr.score}`:'',model:'hsr'},
+                      {label:'WHO',        value:liveCalc?.who?.result,    score:'',                                                           model:'who'},
+                    ].map(row=>(
+                      <div key={row.label} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid var(--border)'}}>
+                        <span style={{fontSize:12,color:'var(--text3)'}}>{row.label}</span>
+                        <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:1}}>
+                          <ScoreBadge value={row.value} model={row.model}/>
+                          {row.score&&<span style={{fontSize:10,color:'var(--text3)',fontFamily:'var(--mono)'}}>{row.score}</span>}
+                        </div>
+                      </div>
+                    ))}
+                    {liveCalc?.npm?.protBlocked&&(
+                      <div style={{marginTop:10,fontSize:11,background:'rgba(232,164,74,.1)',border:'1px solid rgba(232,164,74,.3)',borderRadius:6,padding:'6px 10px',color:'var(--amber)'}}>
+                        ⚠ NPM: Protein blocked (A≥11, FVNL&lt;5)
+                      </div>
+                    )}
+                    {/* Market compliance */}
+                    <div style={{marginTop:12}}>
+                      <div style={{fontSize:11,fontWeight:700,color:'var(--text3)',letterSpacing:'.06em',textTransform:'uppercase',marginBottom:8}}>Market compliance</div>
+                      <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
+                        {liveCalc?.markets && Object.entries(liveCalc.markets).map(([mkt,status])=>(
+                          <span key={mkt} style={{
+                            fontSize:10,fontWeight:700,padding:'2px 7px',borderRadius:4,
+                            background:status==='Pass'?'rgba(30,122,69,.12)':'rgba(179,58,46,.12)',
+                            color:status==='Pass'?'var(--green)':'var(--red)',
+                          }}>{mkt}: {status==='Pass'?'✓':'✗'}</span>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Field guide */}
+            <div className="card">
+              <div className="card-header"><span className="card-title">Field guide</span></div>
+              <div style={{padding:'12px 16px',fontSize:11,color:'var(--text3)',lineHeight:1.8}}>
+                <div><strong style={{color:'var(--text)'}}>FVNL</strong> — Fruits, Vegetables, Nuts, Legumes. Used for NPM C-points and HSR V-points. Enter 0 if not applicable.</div>
+                <div style={{marginTop:6}}><strong style={{color:'var(--text)'}}>FVL</strong> — Fruits, Vegetables, Legumes (Nutri-Score only). Often same as FVNL.</div>
+                <div style={{marginTop:6}}><strong style={{color:'var(--text)'}}>Sodium</strong> — leave blank if entering salt. Derived automatically as Salt × 400.</div>
+                <div style={{marginTop:6}}><strong style={{color:'var(--text)'}}>Fibre AOAC</strong> — use AOAC method values for UK NPM compliance.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════
+          UPLOAD VIEW
+      ══════════════════════════════════════════════════════════ */}
+      {view==='upload' && (
+        <div style={{maxWidth:800}}>
+
+          {/* Drop zone */}
+          {!uploadStatus && (
+            <>
+              <div
+                className={`upload-zone${dragging?' drag':''}`}
+                onDragOver={e=>{e.preventDefault();setDragging(true)}}
+                onDragLeave={()=>setDragging(false)}
+                onDrop={e=>{e.preventDefault();setDragging(false);processFile(e.dataTransfer.files[0])}}
+                onClick={()=>fileRef.current.click()}
+                style={{cursor:'pointer'}}>
+                <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" style={{display:'none'}} onChange={e=>{if(e.target.files[0])processFile(e.target.files[0])}}/>
+                <div style={{fontSize:40,marginBottom:12}}>↑</div>
+                <div style={{fontSize:16,fontWeight:700,color:'var(--text)',marginBottom:6}}>Drop your Excel or CSV file here</div>
+                <div style={{fontSize:13,color:'var(--text3)',marginBottom:4}}>Accepts .xlsx · .xls · .csv</div>
+                <div style={{fontSize:12,color:'var(--text3)'}}>or <span style={{color:'var(--sage)',textDecoration:'underline'}}>click to browse</span></div>
+              </div>
+
+              {/* Column mapping guide */}
+              <div className="card" style={{marginTop:16}}>
+                <div className="card-header"><span className="card-title">📋 Accepted column names (flexible — auto-detected)</span></div>
+                <div className="card-body" style={{padding:'14px 18px'}}>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'4px 24px',fontSize:12}}>
+                    {[
+                      ['Product Name','product name, name, producto, nombre'],
+                      ['Brand','brand, marca'],
+                      ['Category','category, categoria, type, tipo'],
+                      ['Energy (kJ)','energy, energy (kj), energía, kj'],
+                      ['Total Fat (g)','total fat, fat, fat (g), grasa total'],
+                      ['Saturated Fat (g)','saturated fat, sat fat, sat fat (g), grasa saturada'],
+                      ['Total Sugars (g)','total sugars, sugars, sugar, azúcar'],
+                      ['Salt (g)','salt, sal, salt (g)'],
+                      ['Sodium (mg)','sodium, sodio, sodium (mg)'],
+                      ['Protein (g)','protein, proteína, protein (g)'],
+                      ['Fibre (g)','fibre, fiber, fibra, fibre (g)'],
+                      ['FVNL (%)','fvnl, fvnl (%), fvns, % fvnl'],
+                      ['Sales','sales, ventas, revenue, sales (£)'],
+                      ['NPM Type','npm type, product type, tipo'],
+                      ['HSR Category','hsr category, hsr cat'],
+                      ['NS Category','ns category, nutri-score category'],
+                    ].map(([field, aliases])=>(
+                      <div key={field} style={{display:'flex',gap:6,padding:'4px 0',borderBottom:'1px solid var(--border)'}}>
+                        <span style={{fontWeight:600,color:'var(--text)',flexShrink:0,width:150}}>{field}</span>
+                        <span style={{color:'var(--text3)',fontSize:11}}>{aliases}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{marginTop:14,display:'flex',gap:10}}>
+                    <button className="btn btn-ghost btn-sm" onClick={()=>{
+                      const csv = 'Product Name,Brand,Category,Energy (kJ),Total Fat (g),Saturated Fat (g),Total Sugars (g),Salt (g),Protein (g),Fibre (g),FVNL (%),Sales,NPM Type,HSR Category,NS Category\nChocolate Bar,ACME,Snacks,1720,8,4.5,38,0.8,7.5,3,5,250000,Food,Category 2,General Foods\nGreek Yoghurt,ACME,Dairy,255,0.2,0.1,4,0.11,10,0,0,420000,Food,Category 2D,General Foods';
+                      const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='nutrisignal-template.csv';a.click();
+                    }}>↓ Download CSV template</button>
+                    <span style={{fontSize:12,color:'var(--text3)',alignSelf:'center'}}>Start from a pre-formatted template</span>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Loading */}
+          {uploadStatus==='loading' && (
+            <div style={{textAlign:'center',padding:48}}>
+              <div style={{fontSize:28,animation:'blink 1s infinite',marginBottom:12}}>⟳</div>
+              <div style={{color:'var(--text3)'}}>Reading file...</div>
+            </div>
+          )}
+
+          {/* Error */}
+          {uploadStatus?.error && (
+            <div>
+              <div style={{background:'var(--red-dim)',border:'1px solid rgba(179,58,46,.3)',borderRadius:'var(--r-lg)',padding:20,marginBottom:16}}>
+                <div style={{fontWeight:700,color:'var(--red)',marginBottom:4}}>⚠ Could not read file</div>
+                <div style={{fontSize:13,color:'var(--red)'}}>{uploadStatus.error}</div>
+              </div>
+              <button className="btn btn-ghost" onClick={()=>{setUploadStatus(null);setPreviewRows([])}}>← Try again</button>
+            </div>
+          )}
+
+          {/* Preview */}
+          {uploadStatus?.ok !== undefined && !uploadStatus.error && (
+            <div>
+              <div style={{background:'rgba(30,122,69,.1)',border:'1px solid rgba(30,122,69,.3)',borderRadius:'var(--r-lg)',padding:'14px 18px',marginBottom:16,display:'flex',alignItems:'center',gap:12}}>
+                <span style={{fontSize:20}}>✓</span>
+                <div>
+                  <div style={{fontWeight:700,color:'var(--green)'}}>
+                    {uploadStatus.ok} product{uploadStatus.ok!==1?'s':''} ready to import
+                    {uploadStatus.skipped>0&&<span style={{color:'var(--text3)',fontWeight:400,fontSize:12}}> · {uploadStatus.skipped} rows skipped (empty)</span>}
+                  </div>
+                  {uploadStatus.headers?.length>0&&(
+                    <div style={{fontSize:12,color:'var(--text3)',marginTop:2}}>
+                      Columns matched: {uploadStatus.headers.join(', ')}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Preview table */}
+              <div className="card" style={{marginBottom:14}}>
+                <div className="card-header"><span className="card-title">Preview (first {Math.min(5,previewRows.length)} rows)</span></div>
+                <div style={{overflowX:'auto'}}>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Name</th><th>Category</th><th>kJ</th><th>Sugars</th><th>Sat Fat</th><th>Salt</th><th>Protein</th><th>Fibre</th>
+                        <th>NPM</th><th>NS</th><th>HSR</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {previewRows.slice(0,5).map((p,i)=>{
+                        const s=Engine.calcAll(p);
+                        return (
+                          <tr key={i}>
+                            <td style={{fontWeight:600,color:'var(--text)'}}>{p.name}</td>
+                            <td style={{fontSize:12,color:'var(--text3)'}}>{p.category||'—'}</td>
+                            {['energy','sugars','satFat','salt','protein','fibre'].map(k=>(
+                              <td key={k} style={{fontFamily:'var(--mono)',fontSize:12}}>{p[k]!=null?p[k]:'—'}</td>
+                            ))}
+                            <td><ScoreBadge value={s?.npm?.result} model="npm"/></td>
+                            <td><ScoreBadge value={s?.ns?.grade} model="ns"/></td>
+                            <td><ScoreBadge value={s?.hsr?.result} model="hsr"/></td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                {previewRows.length>5&&<div style={{padding:'8px 16px',fontSize:12,color:'var(--text3)',background:'var(--bg3)',borderTop:'1px solid var(--border)'}}>+{previewRows.length-5} more products not shown</div>}
+              </div>
+
+              <div style={{display:'flex',gap:10}}>
+                <button className="btn btn-primary" style={{fontSize:14}} onClick={confirmImport}>
+                  ✓ Import {previewRows.length} product{previewRows.length!==1?'s':''} to database
+                </button>
+                <button className="btn btn-ghost" onClick={()=>{setUploadStatus(null);setPreviewRows([]);}}>← Cancel</button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+    </div>
+  );
+};
+
+
+
+// ── HEATMAP ────────────────────────────────────────────────────────
+const Heatmap = ({products, scored}) => {
+  const [filterCat, setFilterCat] = useState('All');
+  const [sortBy, setSortBy] = useState('name');
+  const markets=['UK','Ireland','France','Belgium','Netherlands','Australia','New Zealand','WHO'];
+  const cats=['All',...[...new Set(products.map(p=>p.category))]];
+
+  const filtered = useMemo(()=>{
+    let ps=products.map((p,i)=>({...p,scores:scored[i]}));
+    if(filterCat!=='All')ps=ps.filter(p=>p.category===filterCat);
+    if(sortBy==='risk')ps.sort((a,b)=>{
+      const af=markets.filter(m=>a.scores?.markets?.[m]==='Fail').length;
+      const bf=markets.filter(m=>b.scores?.markets?.[m]==='Fail').length;
+      return bf-af;
+    });
+    else ps.sort((a,b)=>a.name.localeCompare(b.name));
+    return ps;
+  },[products,scored,filterCat,sortBy]);
+
+  if(!products.length) return <div className="empty"><div className="empty-icon">▥</div><h3>No products</h3><p>Add products to see the compliance heatmap</p></div>;
+
+  return (
+    <div className="fade-in">
+      <div style={{display:'flex',gap:10,marginBottom:16,alignItems:'center',flexWrap:'wrap'}}>
+        <div className="chip-group">
+          {cats.map(c=><button key={c} className={`chip${filterCat===c?' active':''}`} onClick={()=>setFilterCat(c)}>{c}</button>)}
+        </div>
+        <div style={{marginLeft:'auto',display:'flex',gap:8}}>
+          <button className={`chip${sortBy==='name'?' active':''}`} onClick={()=>setSortBy('name')}>↕ Name</button>
+          <button className={`chip${sortBy==='risk'?' active':''}`} onClick={()=>setSortBy('risk')}>⚑ Most risk</button>
+        </div>
+      </div>
+      <div className="card">
+        <div style={{overflowX:'auto'}}>
+          <table style={{minWidth:800}}>
+            <thead>
+              <tr>
+                <th style={{width:160}}>Product</th>
+                <th style={{width:100}}>Category</th>
+                {markets.map(m=><th key={m} style={{textAlign:'center'}}>{m}</th>)}
+                <th>Risk</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(p=>{
+                const mkt=p.scores?.markets||{};
+                const fails=markets.filter(m=>mkt[m]==='Fail').length;
+                return (
+                  <tr key={p.id}>
+                    <td style={{color:'var(--text)',fontWeight:600,maxWidth:160,overflow:'hidden',textOverflow:'ellipsis'}}>{p.name}</td>
+                    <td><span className="tag tag-grey" style={{fontSize:10}}>{p.category}</span></td>
+                    {markets.map(m=>(
+                      <td key={m} style={{padding:'6px 14px'}}>
+                        <div className={`heatmap-cell ${mkt[m]==='Pass'?'hm-pass':mkt[m]==='Fail'?'hm-fail':'hm-na'}`} data-tip={`${p.name} — ${m}: ${mkt[m]||'N/A'}`}>
+                          {mkt[m]==='Pass'?'✓':mkt[m]==='Fail'?'✗':'—'}
+                        </div>
+                      </td>
+                    ))}
+                    <td>
+                      <div style={{display:'flex',alignItems:'center',gap:6}}>
+                        <div style={{flex:1,height:4,background:'var(--border)',borderRadius:2,overflow:'hidden'}}>
+                          <div style={{height:'100%',background:fails>4?'var(--red)':fails>2?'var(--amber)':'var(--sage)',width:`${fails/markets.length*100}%`,borderRadius:2}}/>
+                        </div>
+                        <span style={{fontSize:11,fontFamily:'var(--mono)',color:fails>4?'var(--red)':fails>2?'var(--amber)':'var(--sage)'}}>{fails}/{markets.length}</span>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <div style={{padding:'12px 20px',borderTop:'1px solid var(--border)',display:'flex',gap:20,fontSize:11}}>
+          <span style={{display:'flex',alignItems:'center',gap:6}}><span style={{width:12,height:12,background:'rgba(76,175,111,0.2)',borderRadius:2,display:'inline-block'}}/>Pass</span>
+          <span style={{display:'flex',alignItems:'center',gap:6}}><span style={{width:12,height:12,background:'rgba(232,85,85,0.2)',borderRadius:2,display:'inline-block'}}/>Fail</span>
+          <span style={{display:'flex',alignItems:'center',gap:6}}><span style={{width:12,height:12,background:'rgba(155,170,148,0.1)',borderRadius:2,display:'inline-block'}}/>N/A</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── REFORMULATION ──────────────────────────────────────────────────
+const Reformulation = ({products}) => {
+  const [selectedId, setSelectedId] = useState(products[0]?.id||null);
+  const [mods, setMods] = useState({});
+
+  const product = useMemo(()=>products.find(p=>p.id===selectedId),[products,selectedId]);
+  const original = useMemo(()=>product?Engine.calcAll(product):null,[product]);
+  const modified = useMemo(()=>{
+    if(!product) return null;
+    return Engine.calcAll({...product,...Object.fromEntries(Object.entries(mods).map(([k,v])=>[k,+v]))});
+  },[product,mods]);
+
+  const setMod=(k,v)=>setMods(m=>({...m,[k]:v}));
+  const reset=()=>setMods({});
+
+  const NutrientSlider = ({field, label, unit, min=0, max, step=0.1}) => {
+    const base=product?.[field]||0;
+    const val=mods[field]!==undefined?+mods[field]:base;
+    const pct=base>0?((val-base)/base*100):0;
+    return (
+      <div style={{marginBottom:16}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
+          <span style={{fontSize:13,color:'var(--text2)'}}>{label}</span>
+          <div style={{display:'flex',alignItems:'center',gap:8}}>
+            <span style={{fontFamily:'var(--mono)',fontSize:12,color:'var(--text)'}}>{val.toFixed(1)}{unit}</span>
+            {pct!==0&&<span style={{fontSize:11,color:pct<0?'var(--sage)':'var(--red)',fontWeight:600}}>{pct>0?'+':''}{pct.toFixed(0)}%</span>}
+          </div>
+        </div>
+        <input type="range" className="slider" min={min} max={max||Math.max(base*2,0.1)} step={step} value={val} onChange={e=>setMod(field,e.target.value)}/>
+      </div>
+    );
+  };
+
+  const DeltaBadge = ({orig, mod, model, inverse}) => {
+    if(!orig||!mod) return null;
+    const changed = orig!==mod;
+    let improved = false;
+    if(model==='npm')improved=!mod.lessHealthy&&orig.lessHealthy;
+    else if(model==='ns'){const grades=['A','B','C','D','E'];improved=grades.indexOf(mod.grade)<grades.indexOf(orig.grade);}
+    else if(model==='hsr')improved=(mod.stars||0)>(orig.stars||0);
+    else if(model==='who')improved=mod.compliant&&!orig.compliant;
+    if(!changed) return <span style={{fontSize:11,color:'var(--text3)'}}>→ No change</span>;
+    return <span style={{fontSize:11,color:improved?'var(--sage)':'var(--red)',fontWeight:600}}>{improved?'✓ Improved':'↓ Worse'}</span>;
+  };
+
+  if(!products.length) return <div className="empty"><div className="empty-icon">⟳</div><h3>No products</h3><p>Add products to use the reformulation tool</p></div>;
+
+  return (
+    <div className="fade-in">
+      <div className="grid-2" style={{gap:20}}>
+        <div>
+          <div className="field" style={{marginBottom:16}}>
+            <label className="label">Select product to reformulate</label>
+            <select className="select" style={{width:'100%'}} value={selectedId||''} onChange={e=>{setSelectedId(+e.target.value);reset();}}>
+              {products.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </div>
+          {product&&(
+            <div className="card">
+              <div className="card-header">
+                <span className="card-title">Adjust nutrients</span>
+                <button className="btn btn-ghost btn-sm" onClick={reset}>Reset</button>
+              </div>
+              <div className="card-body">
+                <NutrientSlider field="energy" label="Energy" unit=" kJ" max={4000} step={10}/>
+                <NutrientSlider field="sugars" label="Total Sugars" unit=" g" max={80}/>
+                <NutrientSlider field="satFat" label="Saturated Fat" unit=" g" max={40}/>
+                <NutrientSlider field="salt" label="Salt" unit=" g" max={5} step={0.05}/>
+                <NutrientSlider field="protein" label="Protein" unit=" g" max={50}/>
+                <NutrientSlider field="fibre" label="Fibre" unit=" g" max={20}/>
+                <NutrientSlider field="fvnl" label="FVNL %" unit="%" max={100} step={1}/>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {product&&original&&modified&&(
+          <div>
+            <div className="card" style={{marginBottom:16}}>
+              <div className="card-header"><span className="card-title">Score comparison</span></div>
+              <div className="card-body">
+                {[
+                  {label:'UK NPM',o:original.npm?.result,m:modified.npm?.result,os:original.npm?.score,ms:modified.npm?.score,model:'npm'},
+                  {label:'Nutri-Score',o:original.ns?.grade,m:modified.ns?.grade,os:`Score ${original.ns?.score}`,ms:`Score ${modified.ns?.score}`,model:'ns'},
+                  {label:'HSR v9',o:original.hsr?.result,m:modified.hsr?.result,os:`Score ${original.hsr?.score??'auto'}`,ms:`Score ${modified.hsr?.score??'auto'}`,model:'hsr'},
+                  {label:'WHO',o:original.who?.result,m:modified.who?.result,model:'who'},
+                ].map(row=>(
+                  <div key={row.label} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 0',borderBottom:'1px solid var(--border)'}}>
+                    <span style={{fontSize:13,color:'var(--text2)',width:100}}>{row.label}</span>
+                    <div style={{display:'flex',alignItems:'center',gap:10}}>
+                      <ScoreBadge value={row.o} model={row.model}/>
+                      <span style={{color:'var(--text3)',fontSize:12}}>→</span>
+                      <ScoreBadge value={row.m} model={row.model}/>
+                      <DeltaBadge orig={original[row.model]} mod={modified[row.model]} model={row.model}/>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="card">
+              <div className="card-header"><span className="card-title">⚡ Quick wins</span></div>
+              <div className="card-body">
+                {[
+                  original.npm?.lessHealthy&&!modified.npm?.lessHealthy&&{type:'win',text:`Reformulation brings NPM score from ${original.npm.score} to ${modified.npm.score} — now HEALTHY ✓`},
+                  !['A','B'].includes(original.ns?.grade)&&['A','B'].includes(modified.ns?.grade)&&{type:'win',text:`Nutri-Score improved to ${modified.ns.grade} — now qualifies as A/B grade ✓`},
+                  original.npm?.a2>3&&{type:'info',text:`Sugars drive ${original.npm.a2}/10 A-points. Reducing by ${((product.sugars||0)-(((original.npm.a2-1)>0?[4.5,9,13.5,18,22.5,27,31,36,40,45][(original.npm.a2-2)]||0:0))).toFixed(1)}g could reduce score by 1 point.`},
+                  original.npm?.protBlocked&&{type:'warn',text:`Protein blocked (A=${original.npm.aTotal}≥11, FVNL<5). Increasing FVNL to ≥80% or reducing A-points below 11 would unlock ${original.npm.c3r} C-points.`},
+                ].filter(Boolean).map((insight,i)=>(
+                  <div key={i} className={`insight-card insight-${insight.type==='win'?'win':insight.type==='warn'?'risk':'strategic'}`} style={{marginBottom:8}}>
+                    <div style={{fontSize:11,fontWeight:700,letterSpacing:'.1em',textTransform:'uppercase',color:'var(--text3)',marginBottom:6}}>
+                      {insight.type==='win'?'✓ Improvement':insight.type==='warn'?'⚠ Blocked rule':'💡 Insight'}
+                    </div>
+                    <div style={{fontSize:13,color:'var(--text)',lineHeight:1.6}}>{insight.text}</div>
+                  </div>
+                ))}
+                {!original.npm?.lessHealthy&&original.ns?.grade==='A'&&<div style={{color:'var(--text3)',fontSize:13}}>Product is already well-positioned across models.</div>}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ── AI INSIGHTS ────────────────────────────────────────────────────
+const AIInsights = ({products, scored}) => {
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [apiKey, setApiKey] = useState('');
+  const [showKey, setShowKey] = useState(false);
+  const [apiKeySet, setApiKeySet] = useState(false);
+  const chatEndRef = useRef();
+  const inputRef = useRef();
+
+  useEffect(()=>{
+    chatEndRef.current?.scrollIntoView({behavior:'smooth'});
+  },[messages]);
+
+  // Build a rich system prompt from the actual product data
+  const buildSystemPrompt = () => {
+    if(!products.length) return "You are a nutrition regulatory analyst. No products loaded yet.";
+    const total = products.length;
+    const totalSales = products.reduce((s,p)=>s+(p.sales||0),0);
+    const npmPass = scored.filter(s=>!s.npm?.error&&!s.npm?.lessHealthy).length;
+    const nsPass = scored.filter(s=>['A','B'].includes(s.ns?.grade)).length;
+    const hsrPass = scored.filter(s=>(s.hsr?.stars||0)>=3.5).length;
+    const whoPass = scored.filter(s=>s.who?.compliant).length;
+
+    const productDetails = products.map((p,i) => {
+      const s = scored[i];
+      const markets = s?.markets || {};
+      const failMarkets = Object.entries(markets).filter(([,v])=>v==='Fail').map(([k])=>k);
+      return `- ${p.name} (${p.category}): NPM ${s?.npm?.score??'?'} (${s?.npm?.result??'?'}), NS ${s?.ns?.grade??'?'} score ${s?.ns?.score??'?'}, HSR ${s?.hsr?.result??'?'}, WHO ${s?.who?.result??'?'}.${failMarkets.length?` Fails in: ${failMarkets.join(', ')}.`:''} Per 100g: E=${p.energy}kJ, Sug=${p.sugars}g, SF=${p.satFat}g, Salt=${p.salt}g, Prot=${p.protein}g, Fibre=${p.fibre}g.${p.sales?` Sales: £${p.sales.toLocaleString()}.`:''}${s?.npm?.protBlocked?' [Protein blocked by NPM rule]':''}`;
+    }).join('
+');
+
+    const cats = {};
+    products.forEach((p,i)=>{
+      const c = p.category||'Other';
+      if(!cats[c]) cats[c]={total:0,fail:0};
+      cats[c].total++;
+      if(scored[i]?.npm?.lessHealthy) cats[c].fail++;
+    });
+
+    return `You are a senior regulatory nutrition analyst and reformulation strategist for a food company. You have direct access to their product portfolio data.
+
+PORTFOLIO OVERVIEW:
+- ${total} products across ${Object.keys(cats).length} categories
+- UK NPM: ${npmPass}/${total} compliant (${(npmPass/total*100).toFixed(0)}%)
+- Nutri-Score A/B: ${nsPass}/${total} (${(nsPass/total*100).toFixed(0)}%)
+- HSR ≥3.5★: ${hsrPass}/${total} (${(hsrPass/total*100).toFixed(0)}%)
+- WHO compliant: ${whoPass}/${total} (${(whoPass/total*100).toFixed(0)}%)
+${totalSales>0?`- Total annual sales: £${totalSales.toLocaleString()}
+- Revenue from NPM non-compliant: £${products.filter((_,i)=>scored[i]?.npm?.lessHealthy).reduce((s,p)=>s+(p.sales||0),0).toLocaleString()} (${(products.filter((_,i)=>scored[i]?.npm?.lessHealthy).reduce((s,p)=>s+(p.sales||0),0)/totalSales*100).toFixed(0)}% of total)`:''}
+
+CATEGORY BREAKDOWN:
+${Object.entries(cats).map(([c,d])=>`- ${c}: ${d.fail}/${d.total} failing NPM`).join('
+')}
+
+FULL PRODUCT DATA:
+${productDetails}
+
+REGULATORY MODELS YOU KNOW:
+- UK NPM 2018: score A-C points, less healthy if food≥4 or drink≥1. Protein blocked if A≥11 AND FVNL<5.
+- Nutri-Score 2023: grades A-E. Beverages: A≤2, B 3-5, C 6-9, D 10-13, E≥14. GF: A≤-1, B 0-2, C 3-10, D 11-18, E≥19.
+- HSR v9: 0.5-5★. P-points blocked if baseline≥13 AND V<5. 6 categories with different baselines.
+- WHO: sat fat ≤10% energy, free sugars ≤10% energy, salt ≤5g/day.
+
+Answer questions about this specific portfolio. Be precise with product names and numbers. Give actionable, business-focused advice. Keep answers concise unless asked for detail. Use £ for sales figures. Format with bullet points when listing multiple items.`;
+  };
+
+  const SUGGESTED = [
+    "Which products are biggest risks for UK HFSS regulations?",
+    "What's my quickest win to improve Nutri-Score across the portfolio?",
+    "Which category has worst WHO compliance?",
+    "If I had to reformulate 2 products, which would give best ROI?",
+    "Compare my beverages — which performs best across all models?",
+    "How much revenue is at risk from non-compliant products?",
+    "Which products are borderline — closest to passing NPM?",
+    "What single nutrient is hurting my portfolio the most?",
+  ];
+
+  const sendMessage = async (text) => {
+    const userMsg = text || input.trim();
+    if(!userMsg) return;
+    if(!apiKeySet && !apiKey) {
+      setMessages(m=>[...m,
+        {role:'user', content:userMsg},
+        {role:'assistant', content:"⚠ Please enter your Anthropic API key above to enable AI chat. The key is only used in your browser and never stored.", error:true}
+      ]);
+      setInput('');
+      return;
+    }
+    setInput('');
+    const newMessages = [...messages, {role:'user', content:userMsg}];
+    setMessages(newMessages);
+    setLoading(true);
+
+    try {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version':'2023-06-01'
+        },
+        body: JSON.stringify({
+          model:'claude-sonnet-4-20250514',
+          max_tokens:1000,
+          system: buildSystemPrompt(),
+          messages: newMessages.filter(m=>!m.error).map(m=>({role:m.role, content:m.content}))
+        })
+      });
+
+      if(!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error?.message || `API error ${response.status}`);
+      }
+
+      const data = await response.json();
+      const reply = data.content[0].text;
+      setMessages(m=>[...m, {role:'assistant', content:reply}]);
+    } catch(err) {
+      setMessages(m=>[...m, {
+        role:'assistant',
+        content:`⚠ Error: ${err.message}. Check your API key and try again.`,
+        error:true
+      }]);
+    }
+    setLoading(false);
+    setTimeout(()=>inputRef.current?.focus(), 100);
+  };
+
+  const handleKey = (e) => {
+    if(e.key==='Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  };
+
+  const clearChat = () => setMessages([]);
+
+  const totalSales = products.reduce((s,p)=>s+(p.sales||0),0);
+  const riskSales = products.filter((_,i)=>scored[i]?.npm?.lessHealthy).reduce((s,p)=>s+(p.sales||0),0);
+  const npmFail = scored.filter(s=>s.npm?.lessHealthy).length;
+
+  return (
+    <div className="fade-in" style={{display:'flex',flexDirection:'column',height:'calc(100vh - 120px)',gap:16}}>
+
+      {/* API Key bar */}
+      <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:'var(--r-lg)',padding:'14px 18px',display:'flex',alignItems:'center',gap:12,flexShrink:0,boxShadow:'var(--shadow)'}}>
+        <span style={{fontSize:18}}>✦</span>
+        <div style={{flex:1}}>
+          <div style={{fontSize:13,fontWeight:700,color:'var(--text)',marginBottom:2}}>
+            {apiKeySet ? '✅ AI Assistant ready' : 'Enter your Anthropic API key to activate'}
+          </div>
+          <div style={{fontSize:11,color:'var(--text3)'}}>
+            {apiKeySet
+              ? `Connected · Analyzing ${products.length} products · ${npmFail} NPM risks${totalSales>0?` · £${(riskSales/1000).toFixed(0)}k revenue at risk`:''}`
+              : 'Get yours at console.anthropic.com → Keys are only used in your browser, never stored'}
+          </div>
+        </div>
+        {!apiKeySet ? (
+          <div style={{display:'flex',gap:8,alignItems:'center'}}>
+            <input
+              type={showKey?'text':'password'}
+              className="input"
+              style={{width:260,fontSize:12}}
+              placeholder="sk-ant-api03-..."
+              value={apiKey}
+              onChange={e=>setApiKey(e.target.value)}
+              onKeyDown={e=>e.key==='Enter'&&apiKey&&setApiKeySet(true)}
+            />
+            <button className="btn btn-ghost btn-sm" onClick={()=>setShowKey(s=>!s)} style={{flexShrink:0}}>{showKey?'Hide':'Show'}</button>
+            <button className="btn btn-primary btn-sm" onClick={()=>{if(apiKey)setApiKeySet(true);}} style={{flexShrink:0}}>Connect</button>
+          </div>
+        ) : (
+          <button className="btn btn-ghost btn-sm" onClick={()=>{setApiKeySet(false);setApiKey('');}}>Disconnect</button>
+        )}
+      </div>
+
+      {/* Chat area */}
+      <div style={{flex:1,display:'flex',flexDirection:'column',minHeight:0,background:'var(--card)',border:'1px solid var(--border)',borderRadius:'var(--r-lg)',overflow:'hidden',boxShadow:'var(--shadow)'}}>
+
+        {/* Messages */}
+        <div style={{flex:1,overflowY:'auto',padding:'20px 24px',display:'flex',flexDirection:'column',gap:16}}>
+
+          {messages.length === 0 && (
+            <div>
+              {/* Welcome */}
+              <div style={{textAlign:'center',padding:'32px 0 24px'}}>
+                <div style={{fontSize:32,marginBottom:12}}>✦</div>
+                <div style={{fontFamily:"'DM Serif Display',Georgia,serif",fontSize:20,color:'var(--text)',marginBottom:8}}>
+                  Ask anything about your portfolio
+                </div>
+                <div style={{fontSize:13,color:'var(--text3)',maxWidth:420,margin:'0 auto',lineHeight:1.6}}>
+                  {products.length > 0
+                    ? `I have full access to your ${products.length} products — scores, nutrients, market compliance, and sales data.`
+                    : 'Load products first to enable portfolio analysis.'}
+                </div>
+              </div>
+              {/* Suggested questions */}
+              {products.length > 0 && (
+                <div style={{display:'flex',flexWrap:'wrap',gap:8,justifyContent:'center',maxWidth:680,margin:'0 auto'}}>
+                  {SUGGESTED.map((q,i)=>(
+                    <button key={i}
+                      onClick={()=>sendMessage(q)}
+                      style={{
+                        background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:99,
+                        padding:'7px 14px',fontSize:12,color:'var(--text2)',cursor:'pointer',
+                        transition:'all .15s',fontFamily:'var(--sans)',
+                      }}
+                      onMouseOver={e=>{e.target.style.borderColor='var(--sage)';e.target.style.color='var(--sage)';e.target.style.background='rgba(58,107,74,.07)'}}
+                      onMouseOut={e=>{e.target.style.borderColor='var(--border)';e.target.style.color='var(--text2)';e.target.style.background='var(--bg3)'}}
+                    >{q}</button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {messages.map((msg, i) => (
+            <div key={i} style={{
+              display:'flex',
+              flexDirection:msg.role==='user'?'row-reverse':'row',
+              gap:10,alignItems:'flex-start'
+            }}>
+              {/* Avatar */}
+              <div style={{
+                width:30,height:30,borderRadius:'50%',flexShrink:0,
+                display:'flex',alignItems:'center',justifyContent:'center',
+                fontSize:13,fontWeight:700,
+                background:msg.role==='user'?'var(--sage)':'var(--bg3)',
+                color:msg.role==='user'?'white':'var(--text3)',
+                border:`1px solid ${msg.role==='user'?'var(--sage)':'var(--border)'}`,
+                marginTop:2,
+              }}>
+                {msg.role==='user'?'U':'✦'}
+              </div>
+              {/* Bubble */}
+              <div style={{
+                maxWidth:'72%',
+                background:msg.role==='user'?'var(--sage)':msg.error?'rgba(179,58,46,.08)':'var(--bg3)',
+                color:msg.role==='user'?'white':msg.error?'var(--red)':'var(--text)',
+                border:`1px solid ${msg.role==='user'?'var(--sage)':msg.error?'rgba(179,58,46,.2)':'var(--border)'}`,
+                borderRadius:msg.role==='user'?'14px 4px 14px 14px':'4px 14px 14px 14px',
+                padding:'12px 16px',
+                fontSize:13,lineHeight:1.65,
+                whiteSpace:'pre-wrap',
+              }}>
+                {msg.content}
+              </div>
+            </div>
+          ))}
+
+          {loading && (
+            <div style={{display:'flex',gap:10,alignItems:'flex-start'}}>
+              <div style={{width:30,height:30,borderRadius:'50%',background:'var(--bg3)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,color:'var(--text3)'}}>✦</div>
+              <div style={{background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:'4px 14px 14px 14px',padding:'12px 16px',display:'flex',gap:4,alignItems:'center'}}>
+                {[0,1,2].map(j=>(
+                  <div key={j} style={{width:6,height:6,borderRadius:'50%',background:'var(--sage)',animation:`blink 1.2s ease ${j*0.2}s infinite`}}/>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div ref={chatEndRef}/>
+        </div>
+
+        {/* Input bar */}
+        <div style={{borderTop:'1px solid var(--border)',padding:'14px 18px',display:'flex',gap:10,alignItems:'flex-end',background:'var(--bg2)'}}>
+          <textarea
+            ref={inputRef}
+            className="input"
+            style={{flex:1,resize:'none',minHeight:40,maxHeight:120,lineHeight:1.5,paddingTop:10,paddingBottom:10}}
+            placeholder={products.length>0
+              ? (apiKeySet ? "Ask about your portfolio... (Enter to send, Shift+Enter for new line)" : "Enter API key above to start chatting...")
+              : "Load products first..."}
+            value={input}
+            onChange={e=>setInput(e.target.value)}
+            onKeyDown={handleKey}
+            rows={1}
+            disabled={!products.length}
+          />
+          <div style={{display:'flex',gap:6,flexShrink:0}}>
+            {messages.length>0&&<button className="btn btn-ghost btn-sm" onClick={clearChat} title="Clear chat">↺</button>}
+            <button
+              className="btn btn-primary"
+              onClick={()=>sendMessage()}
+              disabled={!input.trim()||loading||!products.length}
+              style={{height:40,paddingLeft:18,paddingRight:18}}
+            >
+              {loading ? '...' : '→'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ════════════════════════════════════════════════════════════════════
+// EU NUTRITION CLAIMS PAGE
+// ════════════════════════════════════════════════════════════════════
+const ClaimsPage = ({products}) => {
+  const [selected, setSelected] = useState(null);
+  const [filterStatus, setFilterStatus] = useState('all'); // all | eligible | ineligible | missing
+  const [search, setSearch] = useState('');
+  const [viewMode, setViewMode] = useState('product'); // product | matrix
+
+  // Calculate claims for all products
+  const allClaims = useMemo(()=>
+    products.map(p=>({
+      product: p,
+      claims: Claims.evaluate(p),
+      eligible: Claims.eligible(p),
+    })), [products]);
+
+  const filtered = useMemo(()=>
+    allClaims.filter(c =>
+      (!search || c.product.name.toLowerCase().includes(search.toLowerCase()) ||
+       c.product.category?.toLowerCase().includes(search.toLowerCase()))
+    ), [allClaims, search]);
+
+  const selectedClaims = selected
+    ? allClaims.find(c=>c.product.id===selected)
+    : null;
+
+  // All unique claim names
+  const CLAIM_NAMES = [
+    'Low energy','Energy-reduced',
+    'Low fat','Fat-free',
+    'Low saturated fat','Saturated fat-free',
+    'Low sugar','Sugar-free','No added sugars','Reduced sugars',
+    'Low salt','Very low salt','Salt-free','Low sodium',
+    'Source of fibre','High fibre',
+    'Source of protein','High protein',
+  ];
+
+  const CLAIM_GROUPS = [
+    {label:'⚡ Energy', claims:['Low energy','Energy-reduced']},
+    {label:'🧈 Fat', claims:['Low fat','Fat-free','Low saturated fat','Saturated fat-free']},
+    {label:'🍬 Sugars', claims:['Low sugar','Sugar-free','No added sugars','Reduced sugars']},
+    {label:'🧂 Salt', claims:['Low salt','Very low salt','Salt-free','Low sodium']},
+    {label:'🌾 Fibre', claims:['Source of fibre','High fibre']},
+    {label:'🥩 Protein', claims:['Source of protein','High protein']},
+  ];
+
+  const statusBg = {
+    eligible:    'rgba(30,122,69,.13)',
+    ineligible:  'rgba(179,58,46,.1)',
+    insufficient:'rgba(200,98,26,.1)',
+    benchmark:   'rgba(155,170,148,.12)',
+    formulation: 'rgba(155,170,148,.12)',
+  };
+  const statusColor = {
+    eligible:    '#1E7A45',
+    ineligible:  'var(--red)',
+    insufficient:'var(--amber)',
+    benchmark:   'var(--text3)',
+    formulation: 'var(--text3)',
+  };
+  const statusLabel = {
+    eligible:    '✓ Eligible',
+    ineligible:  '✗ Ineligible',
+    insufficient:'⚠ Insufficient data',
+    benchmark:   '○ Benchmark required',
+    formulation: '○ Formulation data required',
+  };
+  const statusIcon = {
+    eligible:'✓', ineligible:'✗', insufficient:'⚠', benchmark:'○', formulation:'○',
+  };
+
+  if (!products.length) return (
+    <div className="empty" style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:'var(--r-xl)'}}>
+      <div className="empty-icon">🏷</div>
+      <h3>No products loaded</h3>
+      <p>Add products to evaluate EU nutrition claims (EC 1924/2006)</p>
+    </div>
+  );
+
+  return (
+    <div className="fade-in">
+
+      {/* Header strip */}
+      <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:'var(--r-lg)',padding:'14px 20px',marginBottom:18,display:'flex',alignItems:'center',gap:14,boxShadow:'var(--shadow)'}}>
+        <div style={{width:36,height:36,borderRadius:8,background:'rgba(58,107,74,.1)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0}}>🏷</div>
+        <div style={{flex:1}}>
+          <div style={{fontWeight:700,fontSize:14,color:'var(--text)'}}>EU Nutrition Claims — EC 1924/2006</div>
+          <div style={{fontSize:12,color:'var(--text3)',marginTop:1}}>
+            Valid for EU / Spain (AESAN). {products.length} products analysed · {allClaims.reduce((s,c)=>s+c.eligible.length,0)} total eligible claims across portfolio.
+          </div>
+        </div>
+        <div style={{display:'flex',background:'var(--bg3)',borderRadius:8,padding:3,gap:2,border:'1px solid var(--border)'}}>
+          {[{id:'product',icon:'☰',label:'By product'},{id:'matrix',icon:'▦',label:'Matrix'}].map(m=>(
+            <button key={m.id} onClick={()=>setViewMode(m.id)}
+              style={{padding:'6px 14px',border:'none',borderRadius:6,cursor:'pointer',fontFamily:'var(--sans)',fontSize:12,fontWeight:600,transition:'all .15s',
+                background:viewMode===m.id?'var(--card)':'transparent',
+                color:viewMode===m.id?'var(--sage)':'var(--text3)',
+                boxShadow:viewMode===m.id?'var(--shadow)':'none'}}>
+              {m.icon} {m.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── VIEW: BY PRODUCT ── */}
+      {viewMode==='product' && (
+        <div style={{display:'grid',gridTemplateColumns:'320px 1fr',gap:16,alignItems:'start'}}>
+
+          {/* Left: product list */}
+          <div>
+            <input className="input" placeholder="⌕ Search products..." value={search}
+              onChange={e=>setSearch(e.target.value)} style={{marginBottom:10}}/>
+            <div style={{display:'flex',flexDirection:'column',gap:6}}>
+              {filtered.map(({product:p, eligible, claims})=>{
+                const isSelected = selected===p.id;
+                const hasInsufficient = claims.some(c=>c.status==='insufficient');
+                return (
+                  <div key={p.id} onClick={()=>setSelected(isSelected?null:p.id)}
+                    style={{
+                      background:isSelected?'rgba(58,107,74,.08)':'var(--card)',
+                      border:`1.5px solid ${isSelected?'var(--sage)':'var(--border)'}`,
+                      borderRadius:'var(--r-lg)',padding:'12px 14px',cursor:'pointer',
+                      transition:'all .15s',
+                    }}
+                    onMouseOver={e=>{if(!isSelected)e.currentTarget.style.borderColor='var(--sage2)'}}
+                    onMouseOut={e=>{if(!isSelected)e.currentTarget.style.borderColor='var(--border)'}}>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8}}>
+                      <div>
+                        <div style={{fontWeight:700,fontSize:13,color:'var(--text)',marginBottom:3}}>{p.name}</div>
+                        <div style={{fontSize:11,color:'var(--text3)'}}>{p.category||'—'}</div>
+                      </div>
+                      <div style={{flexShrink:0,textAlign:'right'}}>
+                        <div style={{fontSize:16,fontWeight:800,color:eligible.length>0?'var(--sage)':'var(--text3)',fontFamily:'var(--mono)'}}>
+                          {eligible.length}
+                        </div>
+                        <div style={{fontSize:9,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'.06em'}}>
+                          {eligible.length===1?'claim':'claims'}
+                        </div>
+                      </div>
+                    </div>
+                    {/* Eligible claim pills */}
+                    {eligible.length>0&&(
+                      <div style={{display:'flex',flexWrap:'wrap',gap:4,marginTop:8}}>
+                        {eligible.slice(0,4).map(c=>(
+                          <span key={c} style={{fontSize:10,fontWeight:600,background:'rgba(30,122,69,.12)',color:'#1E7A45',padding:'1px 7px',borderRadius:99}}>{c}</span>
+                        ))}
+                        {eligible.length>4&&<span style={{fontSize:10,color:'var(--text3)'}}>+{eligible.length-4} more</span>}
+                      </div>
+                    )}
+                    {hasInsufficient&&eligible.length===0&&(
+                      <div style={{fontSize:10,color:'var(--amber)',marginTop:6}}>⚠ Some data missing — complete nutrient profile for full assessment</div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Right: claim detail */}
+          <div>
+            {!selectedClaims ? (
+              <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:'var(--r-xl)',padding:'48px',textAlign:'center'}}>
+                <div style={{fontSize:32,marginBottom:12}}>🏷</div>
+                <div style={{fontSize:15,fontWeight:600,color:'var(--text2)',marginBottom:6}}>Select a product</div>
+                <div style={{fontSize:13,color:'var(--text3)'}}>Click any product on the left to see its full nutrition claims assessment</div>
+              </div>
+            ) : (
+              <div>
+                {/* Product header */}
+                <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:'var(--r-lg)',padding:'16px 20px',marginBottom:14,boxShadow:'var(--shadow)'}}>
+                  <div style={{fontFamily:"'DM Serif Display',Georgia,serif",fontSize:20,color:'var(--text)',marginBottom:4}}>{selectedClaims.product.name}</div>
+                  <div style={{fontSize:12,color:'var(--text3)',display:'flex',gap:14,flexWrap:'wrap'}}>
+                    <span>Category: <strong style={{color:'var(--text2)'}}>{selectedClaims.product.category||'—'}</strong></span>
+                    <span>Energy: <strong style={{color:'var(--text2)'}}>{selectedClaims.product.energy!=null?`${selectedClaims.product.energy} kJ (${Claims.kcal(selectedClaims.product.energy).toFixed(0)} kcal)`:' — '}</strong></span>
+                    <span>Form: <strong style={{color:'var(--text2)'}}>{Claims.isLiquid(selectedClaims.product)?'Liquid (per 100ml)':'Solid (per 100g)'}</strong></span>
+                    <span style={{color:selectedClaims.eligible.length>0?'#1E7A45':'var(--text3)',fontWeight:700}}>
+                      {selectedClaims.eligible.length} eligible claim{selectedClaims.eligible.length!==1?'s':''}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Claims by group */}
+                {CLAIM_GROUPS.map(group=>{
+                  const groupClaims = selectedClaims.claims.filter(c=>group.claims.includes(c.claim));
+                  if(!groupClaims.length) return null;
+                  return (
+                    <div key={group.label} className="card" style={{marginBottom:12}}>
+                      <div className="card-header">
+                        <span className="card-title">{group.label}</span>
+                        <span style={{fontSize:12,color:groupClaims.some(c=>c.status==='eligible')?'#1E7A45':'var(--text3)'}}>
+                          {groupClaims.filter(c=>c.status==='eligible').length}/{groupClaims.length} eligible
+                        </span>
+                      </div>
+                      <div style={{padding:'8px 0'}}>
+                        {groupClaims.map((c,i)=>(
+                          <div key={i} style={{
+                            display:'flex',alignItems:'flex-start',gap:12,
+                            padding:'10px 18px',
+                            borderBottom:i<groupClaims.length-1?'1px solid var(--border)':'none',
+                          }}>
+                            <div style={{
+                              width:22,height:22,borderRadius:6,flexShrink:0,marginTop:1,
+                              display:'flex',alignItems:'center',justifyContent:'center',
+                              background:statusBg[c.status],
+                              fontSize:11,fontWeight:800,color:statusColor[c.status],
+                            }}>{statusIcon[c.status]}</div>
+                            <div style={{flex:1}}>
+                              <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
+                                <span style={{fontSize:13,fontWeight:700,color:'var(--text)'}}>{c.claim}</span>
+                                <span style={{fontSize:11,fontWeight:700,color:statusColor[c.status],background:statusBg[c.status],padding:'1px 8px',borderRadius:99}}>
+                                  {statusLabel[c.status]}
+                                </span>
+                              </div>
+                              <div style={{fontSize:12,color:'var(--text3)',marginTop:3,fontFamily:'var(--mono)'}}>
+                                {c.condition}
+                              </div>
+                              {c.notes&&(
+                                <div style={{fontSize:11,color:'var(--amber)',marginTop:2,display:'flex',gap:4,alignItems:'flex-start'}}>
+                                  <span style={{flexShrink:0}}>→</span><span>{c.notes}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Legal note */}
+                <div style={{fontSize:11,color:'var(--text3)',lineHeight:1.7,padding:'12px 0',borderTop:'1px solid var(--border)',marginTop:4}}>
+                  ⚠ Based on EU Regulation (EC) No 1924/2006. Claim eligibility requires verification by a qualified regulatory professional before use on product labelling or marketing materials.
+                  Claims marked "Benchmark required" require a comparative product. "Formulation data required" claims cannot be assessed from nutrition values alone.
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── VIEW: MATRIX ── */}
+      {viewMode==='matrix' && (
+        <div>
+          {/* Summary row */}
+          <div style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:10,marginBottom:16}}>
+            {CLAIM_GROUPS.map(g=>{
+              const claimsInGroup = g.claims;
+              const eligCount = allClaims.reduce((s,{claims})=>
+                s + claims.filter(c=>claimsInGroup.includes(c.claim)&&c.status==='eligible').length, 0);
+              const totalPossible = allClaims.length * claimsInGroup.length;
+              const pct = totalPossible > 0 ? (eligCount/totalPossible*100) : 0;
+              return (
+                <div key={g.label} style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:'var(--r-lg)',padding:'12px 14px',textAlign:'center',boxShadow:'var(--shadow)'}}>
+                  <div style={{fontSize:16,marginBottom:4}}>{g.label.split(' ')[0]}</div>
+                  <div style={{fontFamily:'var(--mono)',fontSize:18,fontWeight:700,color:pct>40?'#1E7A45':pct>15?'var(--amber)':'var(--text3)'}}>{pct.toFixed(0)}%</div>
+                  <div style={{fontSize:10,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'.06em'}}>{g.label.slice(2)} eligible</div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Matrix table */}
+          <div className="card">
+            <div style={{overflowX:'auto'}}>
+              <table style={{minWidth:1100}}>
+                <thead>
+                  <tr>
+                    <th style={{width:180,position:'sticky',left:0,background:'var(--bg3)',zIndex:2}}>Product</th>
+                    {CLAIM_NAMES.map(c=>(
+                      <th key={c} style={{fontSize:9,letterSpacing:'.04em',textAlign:'center',maxWidth:70,whiteSpace:'normal',lineHeight:1.3,padding:'8px 6px'}}>{c}</th>
+                    ))}
+                    <th style={{textAlign:'center'}}>Eligible</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {allClaims.map(({product:p, claims, eligible})=>(
+                    <tr key={p.id} onClick={()=>{setSelected(p.id);setViewMode('product');}}
+                      style={{cursor:'pointer'}}>
+                      <td style={{fontWeight:600,color:'var(--text)',maxWidth:180,overflow:'hidden',textOverflow:'ellipsis',position:'sticky',left:0,background:'var(--card)',zIndex:1}}>
+                        {p.name}
+                        <div style={{fontSize:10,color:'var(--text3)',fontWeight:400}}>{p.category}</div>
+                      </td>
+                      {CLAIM_NAMES.map(cn=>{
+                        const c = claims.find(x=>x.claim===cn);
+                        if(!c) return <td key={cn}/>;
+                        const bg = {
+                          eligible:'rgba(30,122,69,.15)',
+                          ineligible:'rgba(179,58,46,.1)',
+                          insufficient:'rgba(200,98,26,.1)',
+                          benchmark:'rgba(155,170,148,.08)',
+                          formulation:'rgba(155,170,148,.08)',
+                        }[c.status];
+                        const col = statusColor[c.status];
+                        const icon = statusIcon[c.status];
+                        return (
+                          <td key={cn} style={{padding:'4px 6px',textAlign:'center'}}>
+                            <div style={{width:28,height:22,margin:'0 auto',borderRadius:4,background:bg,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:800,color:col}}>
+                              {icon}
+                            </div>
+                          </td>
+                        );
+                      })}
+                      <td style={{textAlign:'center',fontFamily:'var(--mono)',fontWeight:800,
+                        color:eligible.length>3?'#1E7A45':eligible.length>0?'var(--amber)':'var(--text3)',fontSize:14}}>
+                        {eligible.length}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {/* Legend */}
+            <div style={{padding:'10px 18px',borderTop:'1px solid var(--border)',background:'var(--bg3)',display:'flex',gap:20,flexWrap:'wrap',fontSize:11}}>
+              {Object.entries(statusLabel).map(([k,v])=>(
+                <span key={k} style={{display:'flex',alignItems:'center',gap:5}}>
+                  <span style={{width:18,height:14,borderRadius:3,background:statusBg[k],display:'inline-flex',alignItems:'center',justifyContent:'center',fontSize:9,fontWeight:800,color:statusColor[k]}}>{statusIcon[k]}</span>
+                  <span style={{color:'var(--text3)'}}>{v}</span>
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Legal note */}
+          <div style={{fontSize:11,color:'var(--text3)',lineHeight:1.7,marginTop:14,padding:'12px 16px',background:'var(--card)',border:'1px solid var(--border)',borderRadius:'var(--r)'}}>
+            ⚖ Source: EU Regulation (EC) No 1924/2006 on nutrition and health claims. Valid for EU member states including Spain (AESAN).
+            All assessments require review by a qualified regulatory professional before use in labelling or marketing. "○" claims require additional data (benchmark product or formulation data) before eligibility can be confirmed.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+
+// ════════════════════════════════════════════════════════════════════
+// MAIN APP
+// ════════════════════════════════════════════════════════════════════
+const App = () => {
+  const [page, setPage] = useState('dashboard');
+  const [products, setProducts] = useState(SAMPLE_PRODUCTS);
+  const [isSampleData, setIsSampleData] = useState(true);
+  const scored = useMemo(()=>products.map(p=>({...Engine.calcAll(p),id:p.id})),[products]);
+
+  const pages = {
+    dashboard: {label:'Dashboard',icon:'dashboard',component:<Dashboard products={products} scored={scored}/>},
+    products:  {label:'Products',icon:'products',component:<Products products={products} setProducts={setProducts} isSample={isSampleData} setSample={setIsSampleData}/>},
+    heatmap:   {label:'Heatmap',icon:'heatmap',component:<Heatmap products={products} scored={scored}/>},
+    claims:    {label:'EU Claims',icon:'claims',component:<ClaimsPage products={products}/>},
+    reform:    {label:'Reformulation',icon:'reform',component:<Reformulation products={products}/>},
+    ai:        {label:'AI Insights',icon:'ai',component:<AIInsights products={products} scored={scored}/>},
+  };
+
+  const navGroups = [
+    {label:'Analysis', items:['dashboard','heatmap']},
+    {label:'Products', items:['products']},
+    {label:'Regulatory', items:['claims']},
+    {label:'Tools', items:['reform','ai']},
+  ];
+
+  const npmPass=scored.filter(s=>!s.npm?.error&&!s.npm?.lessHealthy).length;
+
+  return (
+    <div className="app">
+      <aside className="sidebar">
+        <div className="logo">
+          <div className="logo-mark">Nutri<span>Signal</span></div>
+          <div className="logo-sub">Regulatory Intelligence</div>
+        </div>
+
+        <nav className="nav">
+          {navGroups.map(g=>(
+            <div key={g.label}>
+              <div className="nav-section-label">{g.label}</div>
+              {g.items.map(k=>(
+                <div key={k} className={`nav-item${page===k?' active':''}`} onClick={()=>setPage(k)}>
+                  <span className="nav-icon">{pages[k].icon==='dashboard'?'⬛':pages[k].icon==='products'?'☰':pages[k].icon==='heatmap'?'▦':pages[k].icon==='reform'?'⟳':pages[k].icon==='claims'?'🏷':'✦'}</span>
+                  <span>{pages[k].label}</span>
+                  {k==='ai'&&<span style={{marginLeft:'auto',fontSize:9,background:'rgba(58,107,74,.1)',color:'var(--sage)',padding:'1px 5px',borderRadius:3,fontWeight:700}}>AI</span>}
+                </div>
+              ))}
+            </div>
+          ))}
+        </nav>
+
+        <div className="sidebar-footer">
+          <div className="product-count">
+            <div className="dot"/>
+            <span>{products.length} products · {scored.length>0?(npmPass/scored.length*100).toFixed(0):0}% NPM pass</span>
+          </div>
+        </div>
+      </aside>
+
+      <main className="main">
+        <div className="topbar">
+          <span className="topbar-title">{pages[page].label}</span>
+          <div className="topbar-actions">
+            {products.length===0&&<button className="btn btn-primary btn-sm" onClick={()=>setPage('products')}>+ Add products</button>}
+            {page==='products'&&products.length>0&&<button className="btn btn-ghost btn-sm" onClick={()=>{
+              const csv=['Product Name,Category,Energy (kJ),Total Fat (g),Saturated Fat (g),Total Sugars (g),Salt (g),Protein (g),Fibre (g),FVNL (%),Sales,NPM Type,HSR Category,NS Category'].concat(products.map(p=>[p.name,p.category,p.energy,p.totalFat,p.satFat,p.sugars,p.salt,p.protein,p.fibre,p.fvnl,p.sales,p.npmType,p.hsrCat,p.nsCat].join(','))).join('\n');
+              const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='nutrisignal-products.csv';a.click();
+            }}>↗ Export CSV</button>}
+          </div>
+        </div>
+        <div className="page">{pages[page].component}</div>
+      </main>
+    </div>
+  );
+};
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
